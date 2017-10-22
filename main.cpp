@@ -1,12 +1,54 @@
 #include <iostream>
 #include <ctime>
+#include <boost/program_options.hpp>
 #include "search.hpp"
 #include "bitboards.hpp"
 
-int main()
+namespace po = boost::program_options;
+
+namespace
+{
+    void solve();
+    void perft();
+}
+
+
+int main(int argc, char *argv[])
 {
     std::cout.imbue(std::locale(""));       // fancy numbers with commas
 
+    try {
+        po::options_description desc("Options");
+        desc.add_options()
+            ("help", "Show this message")
+            ("perft", "Run in perft mode")
+        ;
+        po::variables_map vm;
+        po::store(po::parse_command_line(argc, argv, desc), vm);
+        po::notify(vm);
+        if (vm.count("help")) {
+            std::cout << "Usage: " << argv[0] << " [options]\n";
+            std::cout << desc;
+            return 0;
+        } else if (vm.count("perft")) {
+            perft();
+        } else {
+            solve();
+        }
+    }
+    catch(std::exception& e) {
+        std::cerr << "ERROR: " << e.what() << std::endl;
+        return 1;
+    }
+
+    return 0;
+}
+
+namespace
+{
+
+void solve()
+{
     SearchResult result = {-1, 1};
     for (unsigned int max_ply = 1; result.lower_bound != result.upper_bound; ++max_ply) {
         std::uint64_t searched_nodes = 0;
@@ -42,6 +84,12 @@ int main()
         std::cout << "Something went horribly wrong!";
     }
     std::cout << std::endl;
-
-    return 0;
 }
+
+
+void perft()
+{
+    std::cout << "perft ain't implemented yet, ya dummy!" << std::endl;
+}
+
+} // anon namespace

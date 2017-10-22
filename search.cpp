@@ -63,8 +63,8 @@ SearchResult search_node(unsigned int depth,
 {
     ++num_searched_nodes;
 
-    if (pos.their_pawns & 0x0000'0000'0000'ff00LL) {
-        // An enemy pawn is on my second rank! I've lost!
+    if (!pos.my_pawns || pos.their_pawns & 0x0000'0000'0000'ff00LL) {
+        // I have no pawns or an enemy pawn is on my second rank! I've lost!
         return {-1, -1};
     }
 
@@ -81,7 +81,6 @@ SearchResult search_node(unsigned int depth,
 
     if (movelist.size() == 0) {
         // Stalemate
-        // @TODO@ -- shouldn't get here once we've got better drawn position detection
         return {0, 0};
     }
 
