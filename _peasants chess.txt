@@ -1,0 +1,112 @@
+My attempt to solve Peasants' Chess.
+
+These are the rules for Peasants' Chess as I once played it with Bob Trager (its likely designer) of the Village Library Chess Club:
+  * Each player gets two rows of pawns on his second and third ranks.
+  * Pawns behave exactly as in chess, including allowing double-moves if on the second rank and en passant.
+  * The first player to place a pawn on his eighth rank wins.
+
+Note that putting a pawn on the seventh rank is sufficient to win, because such a pawn will be a passed pawn and proceed to the eighth rank on the next turn. So our version will count a pawn on the seventh rank as a win. So while the game is said to have an 8x8 board, it's functionally 8x6. For the sake of consistency, we will refer to as 8x8.
+
+Note that only four opening moves need be be considered, since 1.e4 through 1.h4 are just mirrors of 1.d4 through 1.a4.
+
+White's goal is to create a passed pawn. Black's goal is first and foremost to stop this, though black would also like to create a passed pawn if he can do so without white acquiring one.
+
+It seems easiest to create a passed pawn on the a file (or equivalently the h file) because then you need only clear the a and b files of pawns. On any other file, you would need to clear three files. For that reason, I suspect the best opening move is 1.b4. The b pawns hope to advance and remove pawns from the a file.
+
+Any position with a passed pawn means the game will be over within a few ply. That means any such position should be searched thoroughly, even if we're using iterative deepening and it would exceed the ply limit. The side with the passed pawn need only advance the pawn; no other moves need be examined.
+
+When searching for a move, more advanced pawns should be searched first. We'd also prefer to search for moves on the same rank from a to h (or perhaps vice versa if we make our first move on e-h instead of a-d).
+
+
+Since there are four opening moves and my machine has four cores, we could study one opening move per core.
+
+
+https://github.com/sliedes/pawnsonly  is a solution for chess with only pawns and kings (but pawns can promote).
+
+
+<mkchan> If you think about the worst case, 3rd to 7th rank pawns moving will be 8x4 moves + 2nd to 7th rank is 8x5 moves
+<mkchan> That means search is upper bounded at 72ply
+<mkchan> This is hard upper bound
+<mkchan> Not 72 ply sorry, 72 full moves
+<mkchan> That is 144ply
+<mkchan> Max possible number of moves per games if I'm not wrong
+<mkchan> Not considering an opponent that is
+<mkchan> Considering him it'll be less cuz there have to be captures
+
+
+Dead files
+----------
+Consider this opening:
+  1.b4 a5
+  2.bxa5 bxa5
+  3.b5 a4
+
+The a file can be called "dead for white" because its pawns will never, ever advance to the seventh rank unless black allows it, which will only happen if white can get black in zugzwang. If the b file becomes empty, then the file becomes "fully dead" (dead for both sides). Empty files can also be called dead.
+
+If all files are fully dead, the position is drawn, since stalemate will inevitably ensue.
+
+
+Drawn positions
+---------------
+The game is drawn if each file is either empty or fully dead, even if moves are still available, since stalemate is inevitable.
+
+
+Positional evaluation
+---------------------
+Each position has a "pscore", or "positional score", which is the score of the positional evaluation of the position. This score has nothing to do with the minimax value; it is only a guess as to which player is doing better, and it need not be on a scale from -1 to 1. It is superfluous when the exact minimax score is known. The purpose is to determine which order the nodes should be searched in.
+
+Both players like creating dead files for their opponent. Black likes creating dead files for both players because he wants to draw the game; white therefore tries to avoid this.
+
+Almost all positions with passed pawns can be trivially solvable and so they should be fully searched, even during internal iterative deepening.
+
+The position evaluator can be tuned by solving smaller variants of the game (e.g. 6x8 instead of 8x8) and seeing how well the pscore predicts the final result. If the two are poorly correlated, then the evaluator is pretty useless.
+
+
+Isolation
+---------
+It can be simple to determine whether a pawn island has a winning position -- that is, if all the pawns outside the island were ignored. Pawn island pairs -- where both players have pawn islands on the same file -- are especially simple to compute.
+
+If a pawn island pair results in a win in N moves, that means the game *probably* ends in N moves. It can take longer if the opponent is threatening to win in fewer moves elsewhere on the board.
+
+If a pawn island pair will stalemate, it can *mostly* be ignored. Pawns in the island can be advanced to get out of zugzwang elsewhere. Of course, the opponent can also do the same to attempt to restore the zugzwang.
+
+Positions that differ only by the particular configuration of stalemated pawn islands can be considered equivalent. Thus, stalemated pawn islands can be removed from the board.
+
+When a pawn connects what would otherwise be two different pawn islands, things become complicated because that pawn can go to either side of the board.
+
+........
+X.XX..X.
+........
+.....X..
+.X......
+.o..o...
+o..o.o..
+........
+
+Here black and white each have two pawn islands, but they're interdependent: black's c7 pawn can eventually capture or be captured by either the b3 pawn or the d2 pawn.
+
+(One thing to note here is white's a2 pawn is essentially dead: if it advances, black captures it and gets a passed pawn. Black's a7 also can't advance to the fourth rank, or white's pawn will eat it -- except black might allow that to happen to get a better passed pawn on the c file)
+
+
+Branching factor
+----------------
+It's difficult to calculate a reasonable upper bound for the maximum number of moves that can be made in an arbitrary (but legal) position. Surely it's less than 48, which would be three moves for every pawn of that color.
+
+
+Transposition table
+-------------------
+The transposition table should store the full position, since even one hash collision can produce a disastrous result. This means each entry is maybe 32 bytes (16 bytes for the positions' bitboards, plus whose turn it is, the en passant square, score information, and padding to the next power of two).
+
+We might have multiple transposition tables, because we don't want nodes near the root to get overwritten by an index collision, yet we don't necessarily want those nodes to hog the table. So one table might overwrite entries with higher depth and the other might not.
+
+We must account for mirrored positions. For example, 1.h4 is equivalent to 1.a4. The transposition table must recognize this. The simple and obvious way of doing it is to look up the mirrored position if the unmirrored position is not found. But it would be a little faster to have a "canonical form" because then you would never have to run the hash function twice. The canonical form can be determined as follows:
+  * Concatenate the two bitboards for the position into a 128-bit integer.
+  * Do the same for mirrored copies of the bitboards.
+  * Compare the two integers. Whichever is greater corresponds to the position in canonical form.
+
+Canonical form should also remove empty columns on the left side of the board, and collapse neighboring empty columns into one empty column.
+
+
+Verifying correctness
+---------------------
+The move generator can be debugged by using the perft algorithm on two different implementations.
