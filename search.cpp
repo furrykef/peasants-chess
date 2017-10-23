@@ -122,7 +122,7 @@ SearchResult search_node(unsigned int depth,
 void gen_moves(MoveList& movelist, const Position& pos)
 {
     Bitboard all_pawns = pos.my_pawns | pos.their_pawns;
-    Bitboard en_passant_bit = pos.en_passant_bitnum;
+    Bitboard en_passant_bit = 1ULL << pos.en_passant_bitnum;
 
     for (unsigned int bitnum = 8; bitnum < 56; ++bitnum) {
         Bitboard bit = 1ULL << bitnum;
@@ -161,7 +161,7 @@ void gen_moves(MoveList& movelist, const Position& pos)
                 if ((pos.their_pawns & dest) || dest == en_passant_bit) {
                     // Capture is possible
                     Bitboard my_new_pawns = (pos.my_pawns | dest) & ~bit;
-                    Bitboard captured_pawn = (dest == en_passant_bit) ? (dest << 8) : dest;
+                    Bitboard captured_pawn = (dest == en_passant_bit) ? dest >> 8 : dest;
                     Bitboard their_new_pawns = pos.their_pawns & ~captured_pawn;
                     Move move = {{my_new_pawns, their_new_pawns, NO_EN_PASSANT}, true};
                     movelist.push_back(move);
@@ -204,9 +204,10 @@ std::uint64_t perft_node(unsigned int depth, const Position& pos)
 // Rotates the bitboards so that my_pawns and their_pawns are switched and rotated 180 degrees
 Position flip_board(const Position& pos)
 {
+    unsigned int en_passant = (pos.en_passant_bitnum != NO_EN_PASSANT) ? 63 - pos.en_passant_bitnum : NO_EN_PASSANT;
     return {rotate_bitboard(pos.their_pawns),
             rotate_bitboard(pos.my_pawns),
-            64 - pos.en_passant_bitnum};
+            en_passant};
 }
 
 // Negates results for negamax

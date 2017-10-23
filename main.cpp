@@ -90,8 +90,17 @@ void solve()
 void perft()
 {
     for (unsigned int depth = 1; true; ++depth) {
+        std::time_t before, after;
+        std::time(&before);
+        std::uint64_t leaves = perft_root(depth);
+        std::time(&after);
+        double time_taken = std::difftime(after, before);
+        double leaves_sec = leaves/time_taken;
+
         std::cout << "depth " << depth
-                  << "; leaves " << perft_root(depth)
+                  << "; leaves " << leaves
+                  << "; time " << time_taken
+                  << "; megaleaves/sec " << (leaves_sec/1'000'000)
                   << std::endl;
     }
 }
