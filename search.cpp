@@ -158,10 +158,10 @@ bool try_advance(MoveList& movelist,
                  unsigned int new_en_passant_bitnum)
 {
     Bitboard all_pawns = pos.my_pawns | pos.their_pawns;
-    Bitboard advance_dest = bit << (8*num_squares);
-    if (!(all_pawns & advance_dest)) {
+    Bitboard dest = bit << (8*num_squares);
+    if (!(all_pawns & dest)) {
         // The destination is empty; we can advance
-        Bitboard my_new_pawns = (pos.my_pawns | advance_dest) & ~bit;
+        Bitboard my_new_pawns = (pos.my_pawns | dest) & ~bit;
         Move move = {{my_new_pawns, pos.their_pawns, new_en_passant_bitnum}, false};
         movelist.push_back(move);
         return true;
