@@ -42,6 +42,8 @@ SearchResult search_node(unsigned int depth,
     int beta,
     std::uint64_t& num_searched_nodes);
 void gen_moves(MoveList& movelist, const Position& pos);
+bool try_advance(MoveList& movelist, const Position& pos, Bitboard bit, unsigned int num_squares, unsigned int en_passant_bitnum);
+void try_capture(MoveList& movelist, const Position& pos, Bitboard bit, int direction, Bitboard en_passant_bit);
 Position flip_board(const Position& pos);
 SearchResult negate_search_result(SearchResult result);
 std::uint64_t perft_node(unsigned int depth, const Position& pos);
@@ -110,7 +112,7 @@ SearchResult search_node(unsigned int depth,
         if (alpha >= beta) {
             // If we don't examine all nodes, we can't measure the upper bound
             // So we use 1 instead
-            return {child_result.lower_bound, 1};
+            return {alpha, 1};
         }
         best_upper_bound = std::max(best_upper_bound, child_result.upper_bound);
     }
@@ -121,53 +123,66 @@ SearchResult search_node(unsigned int depth,
 // This function only generates moves in the order they're found; no ordering is done.
 void gen_moves(MoveList& movelist, const Position& pos)
 {
-    Bitboard all_pawns = pos.my_pawns | pos.their_pawns;
-    Bitboard en_passant_bit = 1ULL << pos.en_passant_bitnum;
-
     for (unsigned int bitnum = 8; bitnum < 56; ++bitnum) {
         Bitboard bit = 1ULL << bitnum;
         if (pos.my_pawns & bit) {
             // We've found one of my pawns.
-            // First, try to advance it.
-            Bitboard advance_dest = bit << 8;
-            if (!(all_pawns & advance_dest)) {
-                // The space in front is empty; proceed
-                Bitboard my_new_pawns = (pos.my_pawns | advance_dest) & ~bit;
-                Move move = {{my_new_pawns, pos.their_pawns, NO_EN_PASSANT}, false};
-                movelist.push_back(move);
+            // Try a one-square advance
+            bool can_advance = try_advance(movelist, pos, bit, 1, NO_EN_PASSANT);
 
-                // Try two-square advance
-                // @TODO@ -- code too similar to above
-                bool on_second_rank = bitnum < 16;
-                Bitboard long_advance_dest = bit << 16;
-                if (on_second_rank && !(all_pawns & long_advance_dest)) {
-                    Bitboard my_new_pawns = (pos.my_pawns | long_advance_dest) & ~bit;
-                    Move move = {{my_new_pawns, pos.their_pawns, bitnum + 8}, false};
-                    movelist.push_back(move);
-                }
+            // If successful, try a two-square advance if on second rank
+            if (can_advance && bitnum < 16) {
+                try_advance(movelist, pos, bit, 2, bitnum+8);
             }
 
-            // 0 = searching for leftward capture
-            // 1 = searching for rightward capture
-            for (int i = 0; i < 2; ++i) {
-                unsigned int column = bitnum % 8;       // 0 = rightmost column; 7 = leftmost
-
-                // Don't test invalid captures (leftward capture on leftmost column, etc.)
-                if ((i == 0 && column == 7) || (i == 1 && column == 0)) {
-                    continue;
-                }
-
-                Bitboard dest = bit << ((i == 0) ? 9 : 7);
-                if ((pos.their_pawns & dest) || dest == en_passant_bit) {
-                    // Capture is possible
-                    Bitboard my_new_pawns = (pos.my_pawns | dest) & ~bit;
-                    Bitboard captured_pawn = (dest == en_passant_bit) ? dest >> 8 : dest;
-                    Bitboard their_new_pawns = pos.their_pawns & ~captured_pawn;
-                    Move move = {{my_new_pawns, their_new_pawns, NO_EN_PASSANT}, true};
-                    movelist.push_back(move);
-                }
+            Bitboard en_passant_bit = 1ULL << pos.en_passant_bitnum;
+            unsigned int column = bitnum % 8;       // 0 = rightmost column; 7 = leftmost
+            // Don't test invalid captures (leftward capture on leftmost column, etc.)
+            if (column != 7) {
+                try_capture(movelist, pos, bit, -1, en_passant_bit);
+            }
+            if (column != 0) {
+                try_capture(movelist, pos, bit, 1, en_passant_bit);
             }
         }
+    }
+}
+
+// Only checks if the destination is occupied; two-square advances do not check if a pawn is in the way!
+// (This should be done by only calling after checking the result of a one-square advance)
+// Returns true if the square was unoccupied
+bool try_advance(MoveList& movelist,
+                 const Position& pos,
+                 Bitboard bit,
+                 unsigned int num_squares,
+                 unsigned int new_en_passant_bitnum)
+{
+    Bitboard all_pawns = pos.my_pawns | pos.their_pawns;
+    Bitboard advance_dest = bit << (8*num_squares);
+    if (!(all_pawns & advance_dest)) {
+        // The destination is empty; we can advance
+        Bitboard my_new_pawns = (pos.my_pawns | advance_dest) & ~bit;
+        Move move = {{my_new_pawns, pos.their_pawns, new_en_passant_bitnum}, false};
+        movelist.push_back(move);
+        return true;
+    }
+    return false;
+}
+
+void try_capture(MoveList& movelist,
+                 const Position& pos,
+                 Bitboard bit,
+                 int direction,                     // -1 = leftward; 1 = rightward
+                 Bitboard en_passant_bit)
+{
+    Bitboard dest = bit << (8 - direction);
+    if ((pos.their_pawns & dest) || dest == en_passant_bit) {
+        // Capture is possible
+        Bitboard my_new_pawns = (pos.my_pawns | dest) & ~bit;
+        Bitboard captured_pawn = (dest == en_passant_bit) ? dest >> 8 : dest;
+        Bitboard their_new_pawns = pos.their_pawns & ~captured_pawn;
+        Move move = {{my_new_pawns, their_new_pawns, NO_EN_PASSANT}, true};
+        movelist.push_back(move);
     }
 }
 
