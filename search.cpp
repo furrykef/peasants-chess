@@ -153,7 +153,7 @@ void gen_moves(MoveList& movelist, const Position& pos)
                 unsigned int column = bitnum % 8;       // 0 = rightmost column; 7 = leftmost
 
                 // Don't test invalid captures (leftward capture on leftmost column, etc.)
-                if ((i == 0 && column == 0) || (i == 1 && column == 7)) {
+                if ((i == 0 && column == 7) || (i == 1 && column == 0)) {
                     continue;
                 }
 
@@ -194,7 +194,7 @@ std::uint64_t perft_node(unsigned int depth, const Position& pos)
 
     std::uint64_t leaves = 0;
     for (const Move& move : movelist) {
-        leaves += perft_node(depth - 1, move.new_pos);
+        leaves += perft_node(depth - 1, flip_board(move.new_pos));
     }
 
     return leaves;
