@@ -1,4 +1,10 @@
+#include <cstdlib>
 #include "bitboards.hpp"
+
+Bitboard vflip_bitboard(Bitboard board)
+{
+    return _byteswap_uint64(board);
+}
 
 // From https://chessprogramming.wikispaces.com/Flipping+Mirroring+and+Rotating#Rotationby180degrees
 // (stylistic tweaks have been made)

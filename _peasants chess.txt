@@ -71,11 +71,11 @@ Gamelets
 --------
 It can be simple to determine whether a pawn island has a winning position -- that is, if all the pawns outside the island were ignored. Pawn island pairs -- where both players have pawn islands on the same file -- are especially simple to compute. I call these partial positions "gamelets".
 
-If a pawn island pair results in a win in N moves, that means the game *probably* ends in N moves. It can take longer if the opponent is threatening to win in fewer moves elsewhere on the board.
+If a gamelet results in a win in N moves, that means the whole game *probably* ends in N moves. It can take longer if the opponent is threatening to win in fewer moves elsewhere on the board.
 
-If a pawn island pair will stalemate, it can *mostly* be ignored. Pawns in the island can be advanced to get out of zugzwang elsewhere. Of course, the opponent can also do the same to attempt to restore the zugzwang.
+If a pawn island pair will stalemate, but has not yet, its only use is to provide a way to lose tempi in order to get out of zugzwang elsewhere on the board. It only works if the player in zugzwang will be the one to cause stalemate in the gamelet.
 
-Positions that differ only by the particular configuration of stalemated pawn islands can be considered equivalent. Thus, stalemated pawn islands can be removed from the board.
+Positions that differ only by the particular configuration of stalemated pawn islands can be considered equivalent. Thus, stalemated pawn island pairs can be removed from the board.
 
 When a pawn connects what would otherwise be two different pawn islands, things become complicated because that pawn can go to either side of the board.
 

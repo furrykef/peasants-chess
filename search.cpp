@@ -213,12 +213,14 @@ std::uint64_t perft_node(unsigned int depth, const Position& pos)
 }
 
 
-// Rotates the bitboards so that my_pawns and their_pawns are switched and rotated 180 degrees
+// Rotates the bitboards so that my_pawns and their_pawns are switched and vertically flipped
+// Equivalent to rotating by 180 degrees, except the board is horizontally mirrored
+// (we do this instead of the full rotation because it's faster)
 Position flip_board(const Position& pos)
 {
-    unsigned int en_passant = (pos.en_passant_bitnum != NO_EN_PASSANT) ? 63 - pos.en_passant_bitnum : NO_EN_PASSANT;
-    return {rotate_bitboard(pos.their_pawns),
-            rotate_bitboard(pos.my_pawns),
+    unsigned int en_passant = (pos.en_passant_bitnum != NO_EN_PASSANT) ? pos.en_passant_bitnum ^ 56 : NO_EN_PASSANT;
+    return {vflip_bitboard(pos.their_pawns),
+            vflip_bitboard(pos.my_pawns),
             en_passant};
 }
 

@@ -8,6 +8,7 @@
 
 typedef std::uint64_t Bitboard;
 
+Bitboard vflip_bitboard(Bitboard board);
 Bitboard rotate_bitboard(Bitboard bitboard);
 
 #endif
