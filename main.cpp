@@ -1,5 +1,5 @@
+#include <chrono>
 #include <iostream>
-#include <ctime>
 #include <boost/program_options.hpp>
 #include "search.hpp"
 #include "bitboards.hpp"
@@ -10,6 +10,7 @@ namespace
 {
     void solve();
     void perft();
+    std::uint64_t now_in_microseconds();
 }
 
 
@@ -52,11 +53,10 @@ void solve()
     SearchResult result = {-1, 1};
     for (unsigned int max_ply = 1; result.lower_bound != result.upper_bound; ++max_ply) {
         std::uint64_t searched_nodes = 0;
-        std::time_t before, after;
-        std::time(&before);
+        std::uint64_t before = now_in_microseconds();
         result = search_root(max_ply, searched_nodes);
-        std::time(&after);
-        double time_taken = std::difftime(after, before);
+        std::uint64_t after = now_in_microseconds();
+        double time_taken = (after - before) / 1'000'000.0;
         double nodes_sec = searched_nodes/time_taken;
         std::cout << "depth " << max_ply
                   << "; score (" << result.lower_bound << ", " << result.upper_bound << ")"
@@ -90,19 +90,23 @@ void solve()
 void perft()
 {
     for (unsigned int depth = 1; true; ++depth) {
-        std::time_t before, after;
-        std::time(&before);
+        std::uint64_t before = now_in_microseconds();
         std::uint64_t leaves = perft_root(depth);
-        std::time(&after);
-        double time_taken = std::difftime(after, before);
+        std::uint64_t after = now_in_microseconds();
+        double time_taken = (after - before) / 1'000'000.0;
         double leaves_sec = leaves/time_taken;
-
         std::cout << "depth " << depth
                   << "; leaves " << leaves
-                  << "; time " << time_taken
+                  << "; sec " << time_taken
                   << "; megaleaves/sec " << (leaves_sec/1'000'000)
                   << std::endl;
     }
+}
+
+
+std::uint64_t now_in_microseconds()
+{
+    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
 } // anon namespace

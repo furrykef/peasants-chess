@@ -108,6 +108,9 @@ Here, despite his majority, black is lost. He must advance the a or c pawn, but 
 However, a game that includes this gamelet will *not* necessarily end in four ply, because black will be playing on the other gamelet instead of making a move in this one.
 
 
+If a gamelet is winning or losing, then it's impossible for the full position to be a draw. Thus, if either the upper bound or the lower bound for the other gamelets are known, then the score for the full position is known.
+
+
 Branching factor
 ----------------
 It's difficult to calculate a reasonable upper bound for the maximum number of moves that can be made in an arbitrary (but legal) position. Surely it's less than 48, which would be three moves for every pawn of that color.
@@ -124,7 +127,7 @@ We must account for mirrored positions. For example, 1.h4 is equivalent to 1.a4.
   * Do the same for mirrored copies of the bitboards.
   * Compare the two integers. Whichever is greater corresponds to the position in canonical form.
 
-Canonical form should also remove empty columns on the left side of the board, and collapse neighboring empty columns into one empty column.
+Canonical form could also collapse neighboring empty columns into one empty column, and align the board to the left. If no pieces are on the second rank, it can also align the board to the upper-left (so long as the position is marked as having no pieces on the second rank).
 
 
 perft

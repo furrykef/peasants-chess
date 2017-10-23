@@ -12,7 +12,7 @@ struct Position
 {
     Bitboard my_pawns;
     Bitboard their_pawns;
-    unsigned int en_passant_bitnum;             // NO_EN_PASSANT for, well, no en passant
+    unsigned int en_passant_bitnum;             // NO_EN_PASSANT if en passant is impossible
 };
 
 struct Move
