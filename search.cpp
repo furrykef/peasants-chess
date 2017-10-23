@@ -3,13 +3,10 @@
 #include "search.hpp"
 #include "bitboards.hpp"
 
-const Bitboard WHITE_INITIAL_POS = 0x0000'0000'00ff'ff00ULL;
-const Bitboard BLACK_INITIAL_POS = 0x00ff'ff00'0000'0000ULL;
-
 // The maximum number of moves that can be made in a turn (an overestimate)
 const int MAX_BRANCHES = 64;
-
 const unsigned int NO_EN_PASSANT = UINT_MAX;    // note that 1 << NO_EN_PASSANT is 0
+
 
 struct Position
 {
@@ -28,8 +25,8 @@ typedef boost::container::static_vector<Move, MAX_BRANCHES> MoveList;
 
 
 const Position START_POS = {
-    WHITE_INITIAL_POS,
-    BLACK_INITIAL_POS,
+    0x0000'0000'00ff'ff00ULL,
+    0x00ff'ff00'0000'0000ULL,
     NO_EN_PASSANT
 };
 
