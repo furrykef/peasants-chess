@@ -27,6 +27,13 @@ struct Move
 typedef boost::container::static_vector<Move, MAX_BRANCHES> MoveList;
 
 
+const Position START_POS = {
+    WHITE_INITIAL_POS,
+    BLACK_INITIAL_POS,
+    NO_EN_PASSANT
+};
+
+
 namespace
 {
 SearchResult search_node(unsigned int depth,
@@ -37,6 +44,7 @@ SearchResult search_node(unsigned int depth,
 void gen_moves(MoveList& movelist, const Position& pos);
 Position flip_board(const Position& pos);
 SearchResult negate_search_result(SearchResult result);
+std::uint64_t perft_node(unsigned int depth, const Position& pos);
 }
 
 // max_ply must be at least 1
@@ -44,13 +52,15 @@ SearchResult negate_search_result(SearchResult result);
 SearchResult search_root(unsigned int max_ply, std::uint64_t& num_searched_nodes)
 {
     num_searched_nodes = 0;
-    Position start_pos = {
-        WHITE_INITIAL_POS,
-        BLACK_INITIAL_POS,
-        NO_EN_PASSANT
-    };
-    return search_node(max_ply, start_pos, -1, 1, num_searched_nodes);
+    return search_node(max_ply, START_POS, -1, 1, num_searched_nodes);
 }
+
+
+std::uint64_t perft_root(unsigned int depth)
+{
+    return perft_node(depth, START_POS);
+}
+
 
 namespace
 {
@@ -160,6 +170,36 @@ void gen_moves(MoveList& movelist, const Position& pos)
         }
     }
 }
+
+
+std::uint64_t perft_node(unsigned int depth, const Position& pos)
+{
+    if (depth == 0) {
+        return 1;
+    }
+
+    // @TODO@ -- copy/pasted from search_root
+    if (!pos.my_pawns || pos.their_pawns & 0x0000'0000'0000'ff00LL) {
+        // I have no pawns or an enemy pawn is on my second rank! I've lost!
+        return 1;
+    }
+
+    MoveList movelist;
+    gen_moves(movelist, pos);
+
+    if (movelist.size() == 0) {
+        // Stalemate
+        return 1;
+    }
+
+    std::uint64_t leaves = 0;
+    for (const Move& move : movelist) {
+        leaves += perft_node(depth - 1, move.new_pos);
+    }
+
+    return leaves;
+}
+
 
 // Rotates the bitboards so that my_pawns and their_pawns are switched and rotated 180 degrees
 Position flip_board(const Position& pos)

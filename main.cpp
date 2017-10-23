@@ -89,7 +89,11 @@ void solve()
 
 void perft()
 {
-    std::cout << "perft ain't implemented yet, ya dummy!" << std::endl;
+    for (unsigned int depth = 1; true; ++depth) {
+        std::cout << "depth " << depth
+                  << "; leaves " << perft_root(depth)
+                  << std::endl;
+    }
 }
 
 } // anon namespace
