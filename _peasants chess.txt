@@ -7,6 +7,8 @@ These are the rules for Peasants' Chess as I once played it with Bob Trager (its
 
 Note that putting a pawn on the seventh rank is sufficient to win, because such a pawn will be a passed pawn and proceed to the eighth rank on the next turn. So our version will count a pawn on the seventh rank as a win. So while the game is said to have an 8x8 board, it's functionally 8x6. For the sake of consistency, we will refer to as 8x8.
 
+Bob never specified what happens if a player loses all his pawns. I assume that will be a win for the player who has pawns, rather than a stalemate because the player without pawns cannot move.
+
 Note that only four opening moves need be be considered, since 1.e4 through 1.h4 are just mirrors of 1.d4 through 1.a4.
 
 White's goal is to create a passed pawn. Black's goal is first and foremost to stop this, though black would also like to create a passed pawn if he can do so without white acquiring one.
@@ -73,6 +75,8 @@ It can be simple to determine whether a pawn island has a winning position -- th
 
 If a gamelet results in a win in N moves, that means the whole game *probably* ends in N moves. It can take longer if the opponent is threatening to win in fewer moves elsewhere on the board.
 
+Note that a passed pawn can be considered a winning gamelet. This is a special case where a gamelet can exist even if there are other pawns on neighboring files (because those pawns cannot affect the passed pawn) or indeed even if there are no empty columns.
+
 If a pawn island pair will stalemate, but has not yet, its only use is to provide a way to lose tempi in order to get out of zugzwang elsewhere on the board. It only works if the player in zugzwang will be the one to cause stalemate in the gamelet.
 
 Positions that differ only by the particular configuration of stalemated pawn islands can be considered equivalent. Thus, stalemated pawn island pairs can be removed from the board.
@@ -92,6 +96,8 @@ Here black and white each have two pawn islands, but they're interdependent: bla
 
 (One thing to note here is white's a2 pawn is essentially dead: if it advances, black captures it and gets a passed pawn. Black's a7 also can't advance to the fourth rank, or white's pawn will eat it -- except black might allow that to happen to get a better passed pawn on the c file)
 
+I don't think this position can be examined with gamelets directly, but the players can turn it into a position with gamelets rather easily.
+
 Gamelets can have zugzwang:
 
 ...
@@ -109,6 +115,27 @@ However, a game that includes this gamelet will *not* necessarily end in four pl
 
 
 If a gamelet is winning or losing, then it's impossible for the full position to be a draw. Thus, if either the upper bound or the lower bound for the other gamelets are known, then the score for the full position is known.
+
+
+A gamelet can have mutual zugzwang:
+
+....
+X...
+.X..
+.O..
+..X.
+..O.
+...O
+....
+
+First player to advance a pawn loses. This position would be lost for whosever turn it is in a full game, but as a gamelet, it cannot be scored as won, lost, *or* a draw, because its result depends on the other gamelets. If a player can force stalemate on all other gamelets, then he wins the zugzwang.
+
+
+Gamelet tablebase
+-----------------
+Small enough gamelets can be looked up in an endgame tablebase.
+
+Remember when generating the database that mutual zugzwang must be scored specially. This can be detected by checking the position again with the other player to move. If the position is lost either way, it's mutual zugzwang.
 
 
 Branching factor

@@ -33,11 +33,7 @@ const Position START_POS = {
 
 namespace
 {
-SearchResult search_node(unsigned int depth,
-    const Position& pos,
-    int alpha,
-    int beta,
-    std::uint64_t& num_searched_nodes);
+SearchResult search_node(unsigned int depth,  const Position& pos, int alpha, int beta);
 void gen_moves(MoveList& movelist, const Position& pos);
 bool try_advance(MoveList& movelist, const Position& pos, Bitboard bit, unsigned int num_squares, unsigned int en_passant_bitnum);
 void try_capture(MoveList& movelist, const Position& pos, Bitboard bit, int direction, Bitboard en_passant_bit);
@@ -48,10 +44,9 @@ std::uint64_t perft_node(unsigned int depth, const Position& pos);
 
 // max_ply must be at least 1
 // @TODO@ -- pass in lower and upper bounds
-SearchResult search_root(unsigned int max_ply, std::uint64_t& num_searched_nodes)
+SearchResult search_root(unsigned int max_ply)
 {
-    num_searched_nodes = 0;
-    return search_node(max_ply, START_POS, -1, 1, num_searched_nodes);
+    return search_node(max_ply, START_POS, -1, 1);
 }
 
 
@@ -64,17 +59,11 @@ std::uint64_t perft_root(unsigned int depth)
 namespace
 {
 
-SearchResult search_node(unsigned int depth,
-    const Position& pos,
-    int alpha,
-    int beta,
-    std::uint64_t& num_searched_nodes)
+SearchResult search_node(unsigned int depth, const Position& pos, int alpha, int beta)
 {
-    ++num_searched_nodes;
-
     if (!pos.my_pawns || pos.their_pawns & 0x0000'0000'0000'ff00LL) {
         // I have no pawns or an enemy pawn is on my second rank! I've lost!
-        return {-1, -1};
+        return {-1, -1, 1};
     }
 
     // @TODO@ -- perhaps check for positions that will clearly be stalemate (all files dead)
@@ -82,7 +71,7 @@ SearchResult search_node(unsigned int depth,
     // @TODO@ -- perhaps check for passed pawns and don't stop searching if there are any
     if (depth == 0) {
         // Result is unknown
-        return {alpha, 1};
+        return {alpha, 1, 1};
     }
 
     MoveList movelist;
@@ -90,31 +79,33 @@ SearchResult search_node(unsigned int depth,
 
     if (movelist.size() == 0) {
         // Stalemate
-        return {0, 0};
+        return {0, 0, 1};
     }
 
     // @TODO@ -- sort moves
 
     int best_lower_bound = -1;
     int best_upper_bound = -1;
+    std::uint64_t num_childrens_leaves = 0;
     for (const Move& move : movelist) {
         SearchResult child_result = search_node(depth - 1,
                                                 flip_board(move.new_pos),
                                                 -beta,
-                                                -alpha,
-                                                num_searched_nodes);
+                                                -alpha);
+        num_childrens_leaves += child_result.num_leaves;
         child_result = negate_search_result(child_result);      // our score is opposite of opponent's score
         best_lower_bound = std::max(best_lower_bound, child_result.lower_bound);
         alpha = std::max(alpha, child_result.lower_bound);
         if (alpha >= beta) {
             // If we don't examine all nodes, we can't measure the upper bound
             // So we use 1 instead
-            return {alpha, 1};
+            best_upper_bound = 1;
+            break;
         }
         best_upper_bound = std::max(best_upper_bound, child_result.upper_bound);
     }
 
-    return {best_lower_bound, best_upper_bound};
+    return {best_lower_bound, best_upper_bound, num_childrens_leaves};
 }
 
 // This function only generates moves in the order they're found; no ordering is done.
@@ -227,7 +218,7 @@ Position flip_board(const Position& pos)
 // Negates results for negamax
 SearchResult negate_search_result(SearchResult result)
 {
-    return {-result.upper_bound, -result.lower_bound};
+    return {-result.upper_bound, -result.lower_bound, result.num_leaves};
 }
 
 } // anon namespace

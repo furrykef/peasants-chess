@@ -37,3 +37,4 @@ packages
 .vs
 *.db
 *.opendb
+*.user
