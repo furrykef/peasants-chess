@@ -5,9 +5,8 @@ These are the rules for Peasants' Chess as I once played it with Bob Trager (its
   * Pawns behave exactly as in chess, including allowing double-moves if on the second rank and en passant.
   * The first player to place a pawn on his eighth rank wins.
 
-Note that putting a pawn on the seventh rank is sufficient to win, because such a pawn will be a passed pawn and proceed to the eighth rank on the next turn. So our version will count a pawn on the seventh rank as a win. So while the game is said to have an 8x8 board, it's functionally 8x6. For the sake of consistency, we will refer to as 8x8.
+Bob also never specified what happens if the player to move has no legal moves, but the other player does. I will assume it's a stalemate, unless the player cannot move because he has no pawns, in which case it's a loss.
 
-Bob never specified what happens if a player loses all his pawns. I assume that will be a win for the player who has pawns, rather than a stalemate because the player without pawns cannot move.
 
 Note that only four opening moves need be be considered, since 1.e4 through 1.h4 are just mirrors of 1.d4 through 1.a4.
 
@@ -54,6 +53,17 @@ If all files are fully dead, the position is drawn, since stalemate will inevita
 Drawn positions
 ---------------
 The game is drawn if each file is either empty or fully dead, even if moves are still available, since stalemate is inevitable.
+
+
+Pawn on the 7th vs. the 8th
+----------------------------
+<furrykef> I just had a realization
+<furrykef> In Peasants' Chess as originally defined to me, the player wins when his pawn reaches rank 8. Until now I've assumed rank 7 is just as good, because on your next turn you will proceed to rank 8
+<furrykef> This is incorrect!
+<furrykef> Picture this scenario: your opponent moves a pawn and stalemates himself. You advance to the 7th. Now it's your opponent's turn and he can do nothing -- so you can't advance to the 8th!
+<furrykef> A very specific and surely very rare situation -- but it's a possible one.
+
+So a position with a pawn on your second rank is a loss if you have any legal moves and a draw if you do not. Thinking of it like this can save us the trouble of calculating every single possible response if there is a pawn on the seventh.
 
 
 Positional evaluation

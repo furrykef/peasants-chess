@@ -28,8 +28,8 @@ SearchResult negate_search_result(SearchResult result);
 
 SearchResult search_node(unsigned int depth, const Position& pos, int alpha, int beta)
 {
-    if (!pos.my_pawns || pos.their_pawns & 0x0000'0000'0000'ff00LL) {
-        // I have no pawns or an enemy pawn is on my second rank! I've lost!
+    if (!pos.my_pawns || pos.their_pawns & 0x0000'0000'0000'00ffULL) {
+        // I have no pawns or an enemy pawn is on my first rank! I've lost!
         return {-1, -1, 1};
     }
 
