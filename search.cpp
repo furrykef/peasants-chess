@@ -5,15 +5,7 @@
 
 // The maximum number of moves that can be made in a turn (an overestimate)
 const int MAX_BRANCHES = 64;
-const unsigned int NO_EN_PASSANT = UINT_MAX;    // note that 1 << NO_EN_PASSANT is 0
 
-
-struct Position
-{
-    Bitboard my_pawns;
-    Bitboard their_pawns;
-    unsigned int en_passant_bitnum;             // NO_EN_PASSANT if en passant is impossible
-};
 
 struct Move
 {
@@ -24,40 +16,15 @@ struct Move
 typedef boost::container::static_vector<Move, MAX_BRANCHES> MoveList;
 
 
-const Position START_POS = {
-    0x0000'0000'00ff'ff00ULL,
-    0x00ff'ff00'0000'0000ULL,
-    NO_EN_PASSANT
-};
-
-
 namespace
 {
-SearchResult search_node(unsigned int depth,  const Position& pos, int alpha, int beta);
 void gen_moves(MoveList& movelist, const Position& pos);
 bool try_advance(MoveList& movelist, const Position& pos, Bitboard bit, unsigned int num_squares, unsigned int en_passant_bitnum);
 void try_capture(MoveList& movelist, const Position& pos, Bitboard bit, int direction, Bitboard en_passant_bit);
 Position flip_board(const Position& pos);
 SearchResult negate_search_result(SearchResult result);
-std::uint64_t perft_node(unsigned int depth, const Position& pos);
 }
 
-// max_ply must be at least 1
-// @TODO@ -- pass in lower and upper bounds
-SearchResult search_root(unsigned int max_ply)
-{
-    return search_node(max_ply, START_POS, -1, 1);
-}
-
-
-std::uint64_t perft_root(unsigned int depth)
-{
-    return perft_node(depth, START_POS);
-}
-
-
-namespace
-{
 
 SearchResult search_node(unsigned int depth, const Position& pos, int alpha, int beta)
 {
@@ -107,6 +74,39 @@ SearchResult search_node(unsigned int depth, const Position& pos, int alpha, int
 
     return {best_lower_bound, best_upper_bound, num_childrens_leaves};
 }
+
+
+std::uint64_t perft_node(unsigned int depth, const Position& pos)
+{
+    if (depth == 0) {
+        return 1;
+    }
+
+    // @TODO@ -- copy/pasted from search_root
+    if (!pos.my_pawns || pos.their_pawns & 0x0000'0000'0000'ff00LL) {
+        // I have no pawns or an enemy pawn is on my second rank! I've lost!
+        return 1;
+    }
+
+    MoveList movelist;
+    gen_moves(movelist, pos);
+
+    if (movelist.size() == 0) {
+        // Stalemate
+        return 1;
+    }
+
+    std::uint64_t leaves = 0;
+    for (const Move& move : movelist) {
+        leaves += perft_node(depth - 1, flip_board(move.new_pos));
+    }
+
+    return leaves;
+}
+
+
+namespace
+{
 
 // This function only generates moves in the order they're found; no ordering is done.
 void gen_moves(MoveList& movelist, const Position& pos)
@@ -172,35 +172,6 @@ void try_capture(MoveList& movelist,
         Move move = {{my_new_pawns, their_new_pawns, NO_EN_PASSANT}, true};
         movelist.push_back(move);
     }
-}
-
-
-std::uint64_t perft_node(unsigned int depth, const Position& pos)
-{
-    if (depth == 0) {
-        return 1;
-    }
-
-    // @TODO@ -- copy/pasted from search_root
-    if (!pos.my_pawns || pos.their_pawns & 0x0000'0000'0000'ff00LL) {
-        // I have no pawns or an enemy pawn is on my second rank! I've lost!
-        return 1;
-    }
-
-    MoveList movelist;
-    gen_moves(movelist, pos);
-
-    if (movelist.size() == 0) {
-        // Stalemate
-        return 1;
-    }
-
-    std::uint64_t leaves = 0;
-    for (const Move& move : movelist) {
-        leaves += perft_node(depth - 1, flip_board(move.new_pos));
-    }
-
-    return leaves;
 }
 
 

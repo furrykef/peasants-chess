@@ -8,10 +8,16 @@ namespace po = boost::program_options;
 
 namespace
 {
-    void solve();
-    void perft();
-    std::uint64_t now_in_microseconds();
+void solve();
+void perft();
+std::uint64_t now_in_microseconds();
 }
+
+const Position START_POS = {
+    0x0000'0000'00ff'ff00ULL,
+    0x00ff'ff00'0000'0000ULL,
+    NO_EN_PASSANT
+};
 
 
 int main(int argc, char *argv[])
@@ -50,15 +56,18 @@ namespace
 
 void solve()
 {
-    SearchResult result = {-1, 1};
-    for (unsigned int max_ply = 1; result.lower_bound != result.upper_bound; ++max_ply) {
+    int lower_bound = -1;
+    int upper_bound = 1;
+    for (unsigned int depth = 1; lower_bound != upper_bound; ++depth) {
         std::uint64_t before = now_in_microseconds();
-        result = search_root(max_ply);
+        SearchResult result = search_node(depth, START_POS, lower_bound, upper_bound);
+        lower_bound = result.lower_bound;
+        upper_bound = result.upper_bound;
         std::uint64_t after = now_in_microseconds();
         double time_taken = (after - before) / 1'000'000.0;
         double leaves_sec = result.num_leaves/time_taken;
-        std::cout << "depth " << max_ply
-                  << "; score (" << result.lower_bound << ", " << result.upper_bound << ")"
+        std::cout << "depth " << depth
+                  << "; score (" << lower_bound << ", " << upper_bound << ")"
                   << "; leaves " << result.num_leaves
                   << "; sec " << time_taken
                   << "; megaleaves/sec " << (leaves_sec/1'000'000)
@@ -66,7 +75,7 @@ void solve()
     }
 
     // If we get here, the game is solved
-    switch (result.lower_bound) {
+    switch (lower_bound) {
     case -1:
         std::cout << "Black wins.";
         break;
@@ -90,7 +99,7 @@ void perft()
 {
     for (unsigned int depth = 1; true; ++depth) {
         std::uint64_t before = now_in_microseconds();
-        std::uint64_t leaves = perft_root(depth);
+        std::uint64_t leaves = perft_node(depth, START_POS);
         std::uint64_t after = now_in_microseconds();
         double time_taken = (after - before) / 1'000'000.0;
         double leaves_sec = leaves/time_taken;

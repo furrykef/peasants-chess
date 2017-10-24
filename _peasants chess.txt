@@ -36,6 +36,9 @@ https://github.com/sliedes/pawnsonly  is a solution for chess with only pawns an
 <mkchan> Considering him it'll be less cuz there have to be captures
 
 
+Proof-number search is designed to handle the problem we're trying to solve
+
+
 Dead files
 ----------
 Consider this opening:
@@ -62,6 +65,8 @@ Both players like creating dead files for their opponent. Black likes creating d
 Almost all positions with passed pawns can be trivially solvable and so they should be fully searched, even during internal iterative deepening.
 
 The position evaluator can be tuned by solving smaller variants of the game (e.g. 6x8 instead of 8x8) and seeing how well the pscore predicts the final result. If the two are poorly correlated, then the evaluator is pretty useless.
+
+Any position with a winning gamelet is scored extremely high; any position with a losing gamelet is scored correspondingly low. Any position with both depends on which gamelet takes fewer moves to resolve. Any position with only winning gamelets is a won game; any position with only losing gamelets is a lost game; any position with only drawn gamelets is a drawn game. However, gamelets with zugzwang are not the same as a lost gamelet, and gamelets with mutual zugzwang are not the same as a drawn gamelet.
 
 
 Move ordering
@@ -154,7 +159,22 @@ We must account for mirrored positions. For example, 1.h4 is equivalent to 1.a4.
   * Do the same for mirrored copies of the bitboards.
   * Compare the two integers. Whichever is greater corresponds to the position in canonical form.
 
-Canonical form could also collapse neighboring empty columns into one empty column, and align the board to the left. If no pieces are on the second rank, it can also align the board to the upper-left (so long as the position is marked as having no pieces on the second rank).
+Canonical form could also collapse neighboring empty columns into one empty column, and align the board to the left.
+
+I had the idea that if no pieces are on the second rank, it can also align the board to the upper-left (so long as the position is marked as having no pieces on the second rank). This idea is wrong. These positions look similar, but are not equivalent:
+
+........    ........
+........    ........
+.o......    ........
+........    .o......
+......x.    ........
+........    ......x.
+........    ........
+........    ........
+
+White to move in both positions.
+
+In the first, white wins; in the latter, black wins. The extra tempo it takes white to get to rank 7 in the latter position is critical. Remember, the goal is to get to the end of the board!
 
 
 perft
