@@ -49,7 +49,12 @@ SearchResult search_node(unsigned int depth, const Position& pos, int alpha, int
         return {0, 0, 1};
     }
 
-    // @TODO@ -- sort moves
+    // @TODO@ -- sort moves better
+    std::sort(movelist.begin(),
+              movelist.end(),
+              [](Move a, Move b) {
+                return a.is_capture;
+              });
 
     int best_lower_bound = -1;
     int best_upper_bound = -1;
