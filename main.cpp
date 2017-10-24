@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <boost/program_options.hpp>
+#include "coords.hpp"
 #include "search.hpp"
 
 namespace po = boost::program_options;
@@ -125,7 +126,7 @@ Position parse_fen(const std::string& fen)
                   "([Xo1-8]+)/"
                   "([Xo1-8]+)/"
                   "([Xo1-8]+)"
-                  " ([a-h][1-8]|-)");
+                  " ([a-h][36]|-)");
     std::smatch match;
     if (!std::regex_match(fen, match, re)) {
         throw std::exception("Position is in invalid format");
@@ -155,9 +156,10 @@ Position parse_fen(const std::string& fen)
         }
     }
 
-    // @XXX@ parse en passant square
+    std::string en_passant_str = match[9].str();
+    unsigned int en_passant = (en_passant_str != "-") ? parse_coords(en_passant_str) : NO_EN_PASSANT;
 
-    return {white_pawns, black_pawns, NO_EN_PASSANT};
+    return {white_pawns, black_pawns, en_passant};
 }
 
 

@@ -147,6 +147,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="bitboards.cpp" />
+    <ClCompile Include="coords.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="search.cpp">
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Level4</WarningLevel>
@@ -155,6 +156,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bitboards.hpp" />
+    <ClInclude Include="coords.hpp" />
     <ClInclude Include="search.hpp" />
   </ItemGroup>
   <ItemGroup>
