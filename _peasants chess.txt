@@ -190,3 +190,5 @@ In the first, white wins; in the latter, black wins. The extra tempo it takes wh
 perft
 -----
 Depth 7 is known to have 6,146,460 leaf nodes. This has been independently verified by both Twipply and mkchan. Depth 8 and above have not been independently verified by programs that implement a rank-7 victory condition, but my first result is 68,260,416.
+
+You can speed up perft a bit by just counting the number of moves generated at depth 1 instead of actually making them.

@@ -27,6 +27,9 @@
     <ClCompile Include="coords.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="search.hpp">
@@ -36,6 +39,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coords.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tt.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

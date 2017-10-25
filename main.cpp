@@ -5,6 +5,7 @@
 #include <boost/program_options.hpp>
 #include "coords.hpp"
 #include "search.hpp"
+#include "tt.hpp"
 
 namespace po = boost::program_options;
 
@@ -20,6 +21,8 @@ const std::string START_POS = "8/XXXXXXXX/XXXXXXXX/8/8/oooooooo/oooooooo/8 -";
 
 int main(int argc, char *argv[])
 {
+    init_zobrist();
+
     std::cout.imbue(std::locale(""));       // fancy numbers with commas
 
     try {

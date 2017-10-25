@@ -153,11 +153,13 @@
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Level4</WarningLevel>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Level4</WarningLevel>
     </ClCompile>
+    <ClCompile Include="tt.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bitboards.hpp" />
     <ClInclude Include="coords.hpp" />
     <ClInclude Include="search.hpp" />
+    <ClInclude Include="tt.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
