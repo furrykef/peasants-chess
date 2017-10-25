@@ -38,7 +38,7 @@ SearchResult search_node(unsigned int depth, const Position& pos, int alpha, int
     // @TODO@ -- perhaps check for passed pawns and don't stop searching if there are any
     if (depth == 0) {
         // Result is unknown
-        return {alpha, 1, 1};
+        return {-1, 1, 1};
     }
 
     MoveList movelist;
