@@ -25,7 +25,7 @@ class TranspositionTable
 public:
     TranspositionTable(std::size_t size);
     void insert(std::uint64_t hash, const TTEntry& entry);
-    const TTEntry* fetch(std::uint64_t hash) const;
+    const TTEntry* fetch(std::uint64_t hash, const Position& pos) const;
 
 private:
     std::vector<TTEntry> m_smart;               // prioritizes higher depth

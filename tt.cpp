@@ -26,13 +26,14 @@ void TranspositionTable::insert(std::uint64_t hash, const TTEntry& entry)
     }
 }
 
-const TTEntry* TranspositionTable::fetch(std::uint64_t hash) const
+const TTEntry* TranspositionTable::fetch(std::uint64_t hash, const Position& pos) const
 {
+    assert(hash == calc_hash_index(pos));
     std::uint64_t index = hash % m_smart.size();
-    if (m_smart.size() > 0 && m_smart[index].depth > 0) {
+    if (m_smart.size() > 0 && m_smart[index].depth > 0 && m_smart[index].pos == pos) {
         return &m_smart[index];
     }
-    if (m_forgetful.size() > 0 && m_forgetful[index].depth > 0) {
+    if (m_forgetful.size() > 0 && m_forgetful[index].depth > 0 && m_forgetful[index].pos == pos) {
         return &m_forgetful[index];
     }
     return nullptr;
