@@ -49,7 +49,8 @@ SearchResult search_node(unsigned int depth, const Position& pos, int alpha, int
         return {0, 0, 1};
     }
 
-    // @TODO@ -- sort moves better
+    // @TODO@ -- smarter sorting
+    // @TODO@ -- bubble sort?
     std::sort(movelist.begin(),
               movelist.end(),
               [](Move a, Move b) {
@@ -88,8 +89,8 @@ std::uint64_t perft_node(unsigned int depth, const Position& pos)
     }
 
     // @TODO@ -- copy/pasted from search_root
-    if (!pos.my_pawns || pos.their_pawns & 0x0000'0000'0000'ff00LL) {
-        // I have no pawns or an enemy pawn is on my second rank! I've lost!
+    if (!pos.my_pawns || pos.their_pawns & 0x0000'0000'0000'00ffULL) {
+        // I have no pawns or an enemy pawn is on my first rank! I've lost!
         return 1;
     }
 
