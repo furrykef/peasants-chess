@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <boost/container/static_vector.hpp>
 #include "search.hpp"
-#include "bitboards.hpp"
 
 // The maximum number of moves that can be made in a turn (an overestimate)
 const int MAX_BRANCHES = 64;
@@ -21,23 +20,39 @@ namespace
 void gen_moves(MoveList& movelist, const Position& pos);
 bool try_advance(MoveList& movelist, const Position& pos, Bitboard bit, unsigned int num_squares, unsigned int en_passant_bitnum);
 void try_capture(MoveList& movelist, const Position& pos, Bitboard bit, int direction, Bitboard en_passant_bit);
+void sort_moves(MoveList& movelist);
 Position flip_board(const Position& pos);
 SearchResult negate_search_result(SearchResult result);
 }
 
 
-SearchResult search_node(unsigned int depth, const Position& pos, int alpha, int beta)
+SearchResult search_node(int depth, const Position& pos, int alpha, int beta, TranspositionTable& tt)
 {
+    // Check if position is in transposition table
+    std::uint64_t hash = calc_hash(pos);
+
     if (!pos.my_pawns || pos.their_pawns & 0x0000'0000'0000'00ffULL) {
         // I have no pawns or an enemy pawn is on my first rank! I've lost!
+        TTEntry tt_entry(pos, -1, 1, -1, -1, depth);
+        tt.insert(hash, tt_entry);
         return {-1, -1, 1};
     }
+
+    /*const TTEntry* tt_entry_ptr = tt.fetch(hash, pos);
+    if (tt_entry_ptr
+        && tt_entry_ptr->depth >= depth
+        && tt_entry_ptr->alpha <= alpha
+        && tt_entry_ptr->beta >= beta) {
+        return {tt_entry_ptr->lower_bound, tt_entry_ptr->upper_bound, 1};
+    }*/
 
     // @TODO@ -- perhaps check for positions that will clearly be stalemate (all files dead)
 
     // @TODO@ -- perhaps check for passed pawns and don't stop searching if there are any
     if (depth == 0) {
         // Result is unknown
+        TTEntry tt_entry(pos, -1, 1, -1, 1, depth);
+        tt.insert(hash, tt_entry);
         return {-1, 1, 1};
     }
 
@@ -46,31 +61,29 @@ SearchResult search_node(unsigned int depth, const Position& pos, int alpha, int
 
     if (movelist.size() == 0) {
         // Stalemate
+        TTEntry tt_entry(pos, -1, 1, 0, 0, depth);
+        tt.insert(hash, tt_entry);
         return {0, 0, 1};
     }
 
-    // @TODO@ -- smarter sorting
-    // @TODO@ -- bubble sort?
-    std::sort(movelist.begin(),
-              movelist.end(),
-              [](Move a, Move b) {
-                return a.is_capture;
-              });
+    sort_moves(movelist);
 
     int best_lower_bound = -1;
     int best_upper_bound = -1;
     std::uint64_t num_childrens_leaves = 0;
+    int old_alpha = alpha;
     for (const Move& move : movelist) {
         SearchResult child_result = search_node(depth - 1,
                                                 flip_board(move.new_pos),
                                                 -beta,
-                                                -alpha);
+                                                -alpha,
+                                                tt);
         num_childrens_leaves += child_result.num_leaves;
         child_result = negate_search_result(child_result);      // our score is opposite of opponent's score
         best_lower_bound = std::max(best_lower_bound, child_result.lower_bound);
         alpha = std::max(alpha, child_result.lower_bound);
         if (alpha >= beta) {
-            // If we don't examine all nodes, we can't measure the upper bound
+            // If we don't examine all children, we can't measure the upper bound
             // So we use 1 instead
             best_upper_bound = 1;
             break;
@@ -78,11 +91,13 @@ SearchResult search_node(unsigned int depth, const Position& pos, int alpha, int
         best_upper_bound = std::max(best_upper_bound, child_result.upper_bound);
     }
 
+    TTEntry tt_entry(pos, old_alpha, beta, best_lower_bound, best_upper_bound, depth);
+    tt.insert(hash, tt_entry);
     return {best_lower_bound, best_upper_bound, num_childrens_leaves};
 }
 
 
-std::uint64_t perft_node(unsigned int depth, const Position& pos)
+std::uint64_t perft_node(int depth, const Position& pos)
 {
     if (depth == 0) {
         return 1;
@@ -178,6 +193,16 @@ void try_capture(MoveList& movelist,
         Move move = {{my_new_pawns, their_new_pawns, NO_EN_PASSANT}, true};
         movelist.push_back(move);
     }
+}
+
+
+void sort_moves(MoveList& movelist)
+{
+    std::sort(movelist.begin(),
+              movelist.end(),
+              [](Move a, Move b) -> bool {
+                return a.is_capture && !b.is_capture;
+              });
 }
 
 

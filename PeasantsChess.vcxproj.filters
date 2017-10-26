@@ -44,6 +44,9 @@
     <ClInclude Include="tt.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="position.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

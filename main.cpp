@@ -9,6 +9,8 @@
 
 namespace po = boost::program_options;
 
+const std::size_t TT_SIZE = 0x10'0000;
+
 namespace
 {
 void solve(const Position& pos);
@@ -61,11 +63,12 @@ namespace
 
 void solve(const Position& pos)
 {
+    TranspositionTable tt(TT_SIZE);
     int lower_bound = -1;
     int upper_bound = 1;
-    for (unsigned int depth = 1; lower_bound != upper_bound; ++depth) {
+    for (int depth = 1; lower_bound != upper_bound; ++depth) {
         std::uint64_t before = now_in_microseconds();
-        SearchResult result = search_node(depth, pos, lower_bound, upper_bound);
+        SearchResult result = search_node(depth, pos, lower_bound, upper_bound, tt);
         lower_bound = result.lower_bound;
         upper_bound = result.upper_bound;
         std::uint64_t after = now_in_microseconds();
@@ -102,7 +105,7 @@ void solve(const Position& pos)
 
 void perft(const Position& pos)
 {
-    for (unsigned int depth = 1; true; ++depth) {
+    for (int depth = 1; true; ++depth) {
         std::uint64_t before = now_in_microseconds();
         std::uint64_t leaves = perft_node(depth, pos);
         std::uint64_t after = now_in_microseconds();

@@ -2,8 +2,7 @@
 #define PEASANT_TT_HPP
 
 #include <vector>
-#include "search.hpp"
-
+#include "position.hpp"
 
 // TODO: make this as space-efficient as possible, probably
 struct TTEntry
@@ -13,7 +12,19 @@ struct TTEntry
     {
     }
 
+    TTEntry(const Position& _pos, int _alpha, int _beta, int _lower_bound, int _upper_bound, int _depth)
+      : pos(_pos),
+        alpha(_alpha),
+        beta(_beta),
+        lower_bound(_lower_bound),
+        upper_bound(_upper_bound),
+        depth(_depth)
+    {
+    }
+
     Position pos;
+    int alpha;
+    int beta;
     int lower_bound;
     int upper_bound;
     int depth;                                  // <0 means invalid entry

@@ -192,3 +192,10 @@ perft
 Depth 7 is known to have 6,146,460 leaf nodes. This has been independently verified by both Twipply and mkchan. Depth 8 and above have not been independently verified by programs that implement a rank-7 victory condition, but my first result is 68,260,416.
 
 You can speed up perft a bit by just counting the number of moves generated at depth 1 instead of actually making them.
+
+
+Lazy SMP
+--------
+We do this by simply having each thread analyze a different depth with a shared transposition table.
+
+Note that when we start on depth 8, we probably don't have the results from depths 5 through 7, so our move ordering is likely to be suboptimal. We can fix this by re-sorting after analyzing each child, if depth is high enough, since results are likely to come in after analyzing a node.
