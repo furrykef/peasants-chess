@@ -9,7 +9,8 @@
 
 namespace po = boost::program_options;
 
-const std::size_t TT_SIZE = 0x10'0000;
+const std::size_t TT_BUCKETS = 0x10'0000;
+const std::size_t TT_SLOTS_PER_BUCKET = 4;
 
 namespace
 {
@@ -63,7 +64,7 @@ namespace
 
 void solve(const Position& pos)
 {
-    TranspositionTable tt(TT_SIZE);
+    TranspositionTable tt(TT_BUCKETS, TT_SLOTS_PER_BUCKET);
     int lower_bound = -1;
     int upper_bound = 1;
     for (int depth = 1; lower_bound != upper_bound; ++depth) {
@@ -116,6 +117,9 @@ void perft(const Position& pos)
                   << "; sec " << time_taken
                   << "; megaleaves/sec " << (leaves_sec/1'000'000)
                   << std::endl;
+        if (leaves == 0) {
+            break;
+        }
     }
 }
 

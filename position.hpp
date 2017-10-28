@@ -3,7 +3,7 @@
 
 #include "bitboards.hpp"
 
-const unsigned int NO_EN_PASSANT = UINT_MAX;    // note that 1 << NO_EN_PASSANT is 0
+const unsigned int NO_EN_PASSANT = UINT_MAX;    // do not try 1 << NO_EN_PASSANT! It's UB!
 
 struct Position
 {

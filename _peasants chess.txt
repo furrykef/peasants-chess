@@ -38,6 +38,14 @@ https://github.com/sliedes/pawnsonly  is a solution for chess with only pawns an
 Proof-number search is designed to handle the problem we're trying to solve
 
 
+BUGGY POSITION: 8/XXX5/8/8/8/8/ooo5/8 -
+Upper bound starts oscillating at depth 13
+
+
+perft is giving 802,287,678 for depth 9.
+Twipply has 802,573,460.
+
+
 Dead files
 ----------
 Consider this opening:
@@ -77,6 +85,8 @@ Almost all positions with passed pawns can be trivially solvable and so they sho
 The position evaluator can be tuned by solving smaller variants of the game (e.g. 6x8 instead of 8x8) and seeing how well the pscore predicts the final result. If the two are poorly correlated, then the evaluator is pretty useless.
 
 Any position with a winning gamelet is scored extremely high; any position with a losing gamelet is scored correspondingly low. Any position with both depends on which gamelet takes fewer moves to resolve. Any position with only winning gamelets is a won game; any position with only losing gamelets is a lost game; any position with only drawn gamelets is a drawn game. However, gamelets with zugzwang are not the same as a lost gamelet, and gamelets with mutual zugzwang are not the same as a drawn gamelet.
+
+Monte Carlo Tree Search (MTCS) can be used to develop an evaluation function.
 
 
 Move ordering

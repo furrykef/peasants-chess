@@ -103,19 +103,8 @@ std::uint64_t perft_node(int depth, const Position& pos)
         return 1;
     }
 
-    // @TODO@ -- copy/pasted from search_root
-    if (!pos.my_pawns || pos.their_pawns & 0x0000'0000'0000'00ffULL) {
-        // I have no pawns or an enemy pawn is on my first rank! I've lost!
-        return 1;
-    }
-
     MoveList movelist;
     gen_moves(movelist, pos);
-
-    if (movelist.size() == 0) {
-        // Stalemate
-        return 1;
-    }
 
     std::uint64_t leaves = 0;
     for (const Move& move : movelist) {
@@ -144,7 +133,8 @@ void gen_moves(MoveList& movelist, const Position& pos)
                 try_advance(movelist, pos, bit, 2, bitnum+8);
             }
 
-            Bitboard en_passant_bit = 1ULL << pos.en_passant_bitnum;
+            // Have to check NO_EN_PASSANT explicitly because 1 << NO_EN_PASSANT is UB
+            Bitboard en_passant_bit = (pos.en_passant_bitnum == NO_EN_PASSANT) ? 0 : 1 << pos.en_passant_bitnum;
             unsigned int column = bitnum % 8;       // 0 = rightmost column; 7 = leftmost
             // Don't test invalid captures (leftward capture on leftmost column, etc.)
             if (column != 7) {
@@ -185,6 +175,7 @@ void try_capture(MoveList& movelist,
                  Bitboard en_passant_bit)
 {
     Bitboard dest = bit << (8 - direction);
+    assert(dest != 0);
     if ((pos.their_pawns & dest) || dest == en_passant_bit) {
         // Capture is possible
         Bitboard my_new_pawns = (pos.my_pawns | dest) & ~bit;

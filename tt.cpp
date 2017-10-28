@@ -9,40 +9,48 @@ std::uint64_t g_zobrist_en_passant[64];
 }
 
 
-TranspositionTable::TranspositionTable(std::size_t size)
-  : m_smart(size/2),
-    m_forgetful(size/2)
+TranspositionTable::TranspositionTable(std::size_t num_buckets, std::size_t num_slots_per_bucket)
+  : m_entries(num_buckets*num_slots_per_bucket),
+    m_num_slots_per_bucket(num_slots_per_bucket)
 {
 }
 
 void TranspositionTable::insert(std::uint64_t hash, const TTEntry& entry)
 {
     assert(hash == calc_hash(entry.pos));
-    if (m_smart.size() == 0) {
+    if (m_entries.size() == 0) {
         return;
     }
-    std::uint64_t index = hash % m_smart.size();
-    if (m_smart.size() > 0 && entry.depth > m_smart[index].depth) {
-        m_smart[index] = entry;
-    } else if(m_forgetful.size() > 0) {
-        m_forgetful[index] = entry;
+    std::uint64_t index = get_bucket_index(hash);
+    std::size_t last_index = index + m_num_slots_per_bucket - 1;
+    for (; index <= last_index; ++index) {
+        if (entry.depth > m_entries[index].depth || index == last_index) {
+            m_entries[index] = entry;
+            return;
+        } 
     }
 }
 
 const TTEntry* TranspositionTable::fetch(std::uint64_t hash, const Position& pos) const
 {
     assert(hash == calc_hash(pos));
-    if (m_smart.size() == 0) {
+    if (m_entries.size() == 0) {
         return nullptr;
     }
-    std::uint64_t index = hash % m_smart.size();
-    if (m_smart.size() > 0 && m_smart[index].depth > 0 && m_smart[index].pos == pos) {
-        return &m_smart[index];
-    }
-    if (m_forgetful.size() > 0 && m_forgetful[index].depth > 0 && m_forgetful[index].pos == pos) {
-        return &m_forgetful[index];
+    // @TODO@ -- duplicate code
+    std::size_t index = get_bucket_index(hash);
+    for (std::size_t i = 0; i < m_num_slots_per_bucket; ++i) {
+        if (m_entries[index].depth > 0 && m_entries[index].pos == pos) {
+            return &m_entries[index];
+        }
     }
     return nullptr;
+}
+
+
+std::size_t TranspositionTable::get_bucket_index(std::uint64_t hash) const
+{
+    return hash % (m_entries.size()/m_num_slots_per_bucket) * m_num_slots_per_bucket;
 }
 
 

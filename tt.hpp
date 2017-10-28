@@ -34,13 +34,14 @@ struct TTEntry
 class TranspositionTable
 {
 public:
-    TranspositionTable(std::size_t size);
+    TranspositionTable(std::size_t num_buckets, std::size_t num_slots_per_bucket);
     void insert(std::uint64_t hash, const TTEntry& entry);
     const TTEntry* fetch(std::uint64_t hash, const Position& pos) const;
+    std::size_t get_bucket_index(std::uint64_t hash) const;
 
 private:
-    std::vector<TTEntry> m_smart;               // prioritizes higher depth
-    std::vector<TTEntry> m_forgetful;           // always-replace
+    std::vector<TTEntry> m_entries;
+    std::size_t m_num_slots_per_bucket;
 };
 
 
