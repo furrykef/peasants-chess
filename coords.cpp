@@ -11,3 +11,11 @@ unsigned int parse_coords(const std::string& coords)
     unsigned int row = coords[1] - '1';
     return row*8 + col;
 }
+
+std::string bitnum_to_coords(unsigned int bitnum)
+{
+    std::string result = "??";
+    result[0] = "hgfedcba"[bitnum % 8];
+    result[1] = '1' + bitnum/8;
+    return result;
+}

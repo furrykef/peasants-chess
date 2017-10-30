@@ -156,6 +156,11 @@ X...
 First player to advance a pawn loses. This position would be lost for whosever turn it is in a full game, but as a gamelet, it cannot be scored as won, lost, *or* a draw, because its result depends on the other gamelets. If a player can force stalemate on all other gamelets, then he wins the zugzwang.
 
 
+Gamelets can be "won" in more than one sense:
+  * A strongly won gamelet wins regardless of what moves the opponent makes, including null moves.
+  * A weakly won gamelet can be drawn or lost if the opponent makes a null move at the right time (i.e., the win requires putting the opponent in zugzwang).
+
+
 Gamelet tablebase
 -----------------
 Small enough gamelets can be looked up in an endgame tablebase.
@@ -209,3 +214,8 @@ Lazy SMP
 We do this by simply having each thread analyze a different depth with a shared transposition table.
 
 Note that when we start on depth 8, we probably don't have the results from depths 5 through 7, so our move ordering is likely to be suboptimal. We can fix this by re-sorting after analyzing each child, if depth is high enough, since results are likely to come in after analyzing a node.
+
+
+Iterative search
+----------------
+Using an iterative instead of recursive search would make the state pausable. The program could save its state to disk every day or on command, so it could run continuously.

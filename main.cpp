@@ -16,6 +16,7 @@ namespace
 {
 void solve(const Position& pos);
 void perft(const Position& pos);
+void split_perft(const Position& pos);
 Position parse_fen(const std::string& fen);
 std::uint64_t now_in_microseconds();
 }
@@ -33,6 +34,7 @@ int main(int argc, char *argv[])
         desc.add_options()
             ("help", "Show this message")
             ("perft", "Run in perft mode")
+            ("split-perft", "Run in split perft mode")
             ("pos,p", po::value<std::string>(), "Choose position to analyze")
         ;
         po::variables_map vm;
@@ -47,6 +49,8 @@ int main(int argc, char *argv[])
         Position pos = parse_fen(pos_fen);
         if (vm.count("perft")) {
             perft(pos);
+        } else if (vm.count("split-perft")) {
+            split_perft(pos);
         } else {
             solve(pos);
         }
@@ -118,6 +122,37 @@ void perft(const Position& pos)
                   << "; megaleaves/sec " << (leaves_sec/1'000'000)
                   << std::endl;
         if (leaves == 0) {
+            break;
+        }
+    }
+}
+
+// @TODO@ -- merge common code with perft(), or just remove perft() entirely
+void split_perft(const Position& pos)
+{
+    for (int depth = 1; true; ++depth) {
+        std::uint64_t before = now_in_microseconds();
+        std::vector<PerftMove> moves = split_perft_node(depth, pos);
+        std::uint64_t after = now_in_microseconds();
+        std::uint64_t num_leaves = 0;
+        for (const PerftMove& move : moves) {
+            num_leaves += move.num_leaves;
+        }
+        double time_taken = (after - before) / 1'000'000.0;
+        double leaves_sec = num_leaves/time_taken;
+        std::cout << "depth " << depth
+                  << "; leaves " << num_leaves
+                  << "; sec " << time_taken
+                  << "; megaleaves/sec " << (leaves_sec/1'000'000)
+                  << std::endl;
+        for (const PerftMove& move : moves) {
+            std::cout << "    "
+                      << bitnum_to_coords(move.src_bitnum) << "-"
+                      << bitnum_to_coords(move.dest_bitnum) << ": "
+                      << move.num_leaves << " leaves"
+                      << std::endl;
+        }
+        if (num_leaves == 0) {
             break;
         }
     }

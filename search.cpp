@@ -9,6 +9,8 @@ const int MAX_BRANCHES = 64;
 struct Move
 {
     Position new_pos;
+    unsigned int src_bitnum;
+    unsigned int dest_bitnum;
     bool is_capture;
 };
 
@@ -18,8 +20,8 @@ typedef boost::container::static_vector<Move, MAX_BRANCHES> MoveList;
 namespace
 {
 void gen_moves(MoveList& movelist, const Position& pos);
-bool try_advance(MoveList& movelist, const Position& pos, Bitboard bit, unsigned int num_squares, unsigned int en_passant_bitnum);
-void try_capture(MoveList& movelist, const Position& pos, Bitboard bit, int direction, Bitboard en_passant_bit);
+bool try_advance(MoveList& movelist, const Position& pos, unsigned int bitnum, unsigned int num_squares, unsigned int en_passant_bitnum);
+void try_capture(MoveList& movelist, const Position& pos, unsigned int bitnum, int direction, Bitboard en_passant_bit);
 void sort_moves(MoveList& movelist);
 Position flip_board(const Position& pos);
 SearchResult negate_search_result(SearchResult result);
@@ -114,6 +116,26 @@ std::uint64_t perft_node(int depth, const Position& pos)
     return leaves;
 }
 
+std::vector<PerftMove> split_perft_node(int depth, const Position& pos)
+{
+    std::vector<PerftMove> result;
+
+    if (depth == 0) {
+        return result;
+    }
+
+    MoveList movelist;
+    gen_moves(movelist, pos);
+
+    for (const Move& move : movelist) {
+        std::uint64_t num_leaves = perft_node(depth - 1, flip_board(move.new_pos));
+        PerftMove perft_move = {move.src_bitnum, move.dest_bitnum, num_leaves};
+        result.push_back(perft_move);
+    }
+
+    return result;
+}
+
 
 namespace
 {
@@ -126,22 +148,22 @@ void gen_moves(MoveList& movelist, const Position& pos)
         if (pos.my_pawns & bit) {
             // We've found one of my pawns.
             // Try a one-square advance
-            bool can_advance = try_advance(movelist, pos, bit, 1, NO_EN_PASSANT);
+            bool can_advance = try_advance(movelist, pos, bitnum, 1, NO_EN_PASSANT);
 
             // If successful, try a two-square advance if on second rank
             if (can_advance && bitnum < 16) {
-                try_advance(movelist, pos, bit, 2, bitnum+8);
+                try_advance(movelist, pos, bitnum, 2, bitnum+8);
             }
 
             // Have to check NO_EN_PASSANT explicitly because 1 << NO_EN_PASSANT is UB
-            Bitboard en_passant_bit = (pos.en_passant_bitnum == NO_EN_PASSANT) ? 0 : 1 << pos.en_passant_bitnum;
+            Bitboard en_passant_bit = (pos.en_passant_bitnum == NO_EN_PASSANT) ? 0 : 1ULL << pos.en_passant_bitnum;
             unsigned int column = bitnum % 8;       // 0 = rightmost column; 7 = leftmost
             // Don't test invalid captures (leftward capture on leftmost column, etc.)
             if (column != 7) {
-                try_capture(movelist, pos, bit, -1, en_passant_bit);
+                try_capture(movelist, pos, bitnum, -1, en_passant_bit);
             }
             if (column != 0) {
-                try_capture(movelist, pos, bit, 1, en_passant_bit);
+                try_capture(movelist, pos, bitnum, 1, en_passant_bit);
             }
         }
     }
@@ -152,16 +174,18 @@ void gen_moves(MoveList& movelist, const Position& pos)
 // Returns true if the square was unoccupied
 bool try_advance(MoveList& movelist,
                  const Position& pos,
-                 Bitboard bit,
+                 unsigned int bitnum,
                  unsigned int num_squares,
                  unsigned int new_en_passant_bitnum)
 {
+    unsigned int dest_bitnum = bitnum+8*num_squares;
     Bitboard all_pawns = pos.my_pawns | pos.their_pawns;
-    Bitboard dest = bit << (8*num_squares);
+    Bitboard bit = 1ULL << bitnum;
+    Bitboard dest = 1ULL << dest_bitnum;
     if (!(all_pawns & dest)) {
         // The destination is empty; we can advance
         Bitboard my_new_pawns = (pos.my_pawns | dest) & ~bit;
-        Move move = {{my_new_pawns, pos.their_pawns, new_en_passant_bitnum}, false};
+        Move move = {{my_new_pawns, pos.their_pawns, new_en_passant_bitnum}, bitnum, dest_bitnum, false};
         movelist.push_back(move);
         return true;
     }
@@ -170,18 +194,20 @@ bool try_advance(MoveList& movelist,
 
 void try_capture(MoveList& movelist,
                  const Position& pos,
-                 Bitboard bit,
+                 unsigned int bitnum,
                  int direction,                     // -1 = leftward; 1 = rightward
                  Bitboard en_passant_bit)
 {
-    Bitboard dest = bit << (8 - direction);
+    unsigned int dest_bitnum = bitnum + 8 - direction;
+    Bitboard bit = 1ULL << bitnum;
+    Bitboard dest = 1ULL << dest_bitnum;
     assert(dest != 0);
     if ((pos.their_pawns & dest) || dest == en_passant_bit) {
         // Capture is possible
         Bitboard my_new_pawns = (pos.my_pawns | dest) & ~bit;
         Bitboard captured_pawn = (dest == en_passant_bit) ? dest >> 8 : dest;
         Bitboard their_new_pawns = pos.their_pawns & ~captured_pawn;
-        Move move = {{my_new_pawns, their_new_pawns, NO_EN_PASSANT}, true};
+        Move move = {{my_new_pawns, their_new_pawns, NO_EN_PASSANT}, bitnum, dest_bitnum, true};
         movelist.push_back(move);
     }
 }
@@ -202,7 +228,7 @@ void sort_moves(MoveList& movelist)
 // (we do this instead of the full rotation because it's faster)
 Position flip_board(const Position& pos)
 {
-    unsigned int en_passant = (pos.en_passant_bitnum != NO_EN_PASSANT) ? pos.en_passant_bitnum ^ 56 : NO_EN_PASSANT;
+    auto en_passant = (pos.en_passant_bitnum != NO_EN_PASSANT) ? pos.en_passant_bitnum ^ 56 : NO_EN_PASSANT;
     return {vflip_bitboard(pos.their_pawns),
             vflip_bitboard(pos.my_pawns),
             en_passant};
