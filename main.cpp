@@ -14,9 +14,8 @@ const std::size_t TT_SLOTS_PER_BUCKET = 4;
 
 namespace
 {
-void solve(const Position& pos);
-void perft(const Position& pos);
-void split_perft(const Position& pos);
+void solve(const Position& pos, int start_depth, int max_depth);
+void perft(const Position& pos, int start_depth, int max_depth, bool split);
 Position parse_fen(const std::string& fen);
 std::uint64_t now_in_microseconds();
 }
@@ -33,6 +32,8 @@ int main(int argc, char *argv[])
         po::options_description desc("Options");
         desc.add_options()
             ("help", "Show this message")
+            ("depth", po::value<int>(), "Starting depth")
+            ("max-depth", po::value<int>(), "Maximum depth")
             ("perft", "Run in perft mode")
             ("split-perft", "Run in split perft mode")
             ("pos,p", po::value<std::string>(), "Choose position to analyze")
@@ -47,12 +48,14 @@ int main(int argc, char *argv[])
         }
         std::string pos_fen = (vm.count("pos")) ? vm["pos"].as<std::string>() : START_POS;
         Position pos = parse_fen(pos_fen);
+        int depth = (vm.count("depth")) ? vm["depth"].as<int>() : 1;
+        int max_depth = (vm.count("max-depth")) ? vm["max-depth"].as<int>() : INT_MAX;
         if (vm.count("perft")) {
-            perft(pos);
+            perft(pos, depth, max_depth, false);
         } else if (vm.count("split-perft")) {
-            split_perft(pos);
+            perft(pos, depth, max_depth, true);
         } else {
-            solve(pos);
+            solve(pos, depth, max_depth);
         }
     }
     catch(std::exception& e) {
@@ -66,12 +69,12 @@ int main(int argc, char *argv[])
 namespace
 {
 
-void solve(const Position& pos)
+void solve(const Position& pos, int start_depth, int max_depth)
 {
     TranspositionTable tt(TT_BUCKETS, TT_SLOTS_PER_BUCKET);
     int lower_bound = -1;
     int upper_bound = 1;
-    for (int depth = 1; lower_bound != upper_bound; ++depth) {
+    for (int depth = start_depth; lower_bound != upper_bound && depth <= max_depth; ++depth) {
         std::uint64_t before = now_in_microseconds();
         SearchResult result = search_node(depth, pos, lower_bound, upper_bound, tt);
         lower_bound = result.lower_bound;
@@ -87,50 +90,35 @@ void solve(const Position& pos)
                   << std::endl;
     }
 
-    // If we get here, the position is solved
-    switch (lower_bound) {
-    case -1:
-        std::cout << "Black wins.";
-        break;
+    if (lower_bound == upper_bound) {
+        // The position is solved
+        switch (lower_bound) {
+        case -1:
+            std::cout << "Black wins.";
+            break;
 
-    case 0:
-        std::cout << "The position is drawn.";
-        break;
+        case 0:
+            std::cout << "The position is drawn.";
+            break;
 
-    case 1:
-        std::cout << "White wins.";
-        break;
+        case 1:
+            std::cout << "White wins.";
+            break;
 
-    default:
-        std::cout << "Something went horribly wrong!";
+        default:
+            std::cout << "Something went horribly wrong!";
+        }
+    } else {
+        std::cout << "Maximum search depth reached.";
     }
+
     std::cout << std::endl;
 }
 
 
-void perft(const Position& pos)
+void perft(const Position& pos, int start_depth, int max_depth, bool split)
 {
-    for (int depth = 1; true; ++depth) {
-        std::uint64_t before = now_in_microseconds();
-        std::uint64_t leaves = perft_node(depth, pos);
-        std::uint64_t after = now_in_microseconds();
-        double time_taken = (after - before) / 1'000'000.0;
-        double leaves_sec = leaves/time_taken;
-        std::cout << "depth " << depth
-                  << "; leaves " << leaves
-                  << "; sec " << time_taken
-                  << "; megaleaves/sec " << (leaves_sec/1'000'000)
-                  << std::endl;
-        if (leaves == 0) {
-            break;
-        }
-    }
-}
-
-// @TODO@ -- merge common code with perft(), or just remove perft() entirely
-void split_perft(const Position& pos)
-{
-    for (int depth = 1; true; ++depth) {
+    for (int depth = start_depth; depth <= max_depth; ++depth) {
         std::uint64_t before = now_in_microseconds();
         std::vector<PerftMove> moves = split_perft_node(depth, pos);
         std::uint64_t after = now_in_microseconds();
@@ -145,12 +133,14 @@ void split_perft(const Position& pos)
                   << "; sec " << time_taken
                   << "; megaleaves/sec " << (leaves_sec/1'000'000)
                   << std::endl;
-        for (const PerftMove& move : moves) {
-            std::cout << "    "
-                      << bitnum_to_coords(move.src_bitnum) << "-"
-                      << bitnum_to_coords(move.dest_bitnum) << ": "
-                      << move.num_leaves << " leaves"
-                      << std::endl;
+        if (split) {
+            for (const PerftMove& move : moves) {
+                std::cout << "    "
+                          << bitnum_to_coords(move.src_bitnum) << "-"
+                          << bitnum_to_coords(move.dest_bitnum) << ": "
+                          << move.num_leaves << " leaves"
+                          << std::endl;
+            }
         }
         if (num_leaves == 0) {
             break;
