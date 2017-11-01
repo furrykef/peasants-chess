@@ -1,20 +1,18 @@
 #include <algorithm>
-#include <boost/container/static_vector.hpp>
 #include "search.hpp"
 
 // The maximum number of moves that can be made in a turn (an overestimate)
 const int MAX_BRANCHES = 64;
 
 
-struct Move
+struct SearchMove
 {
     Position new_pos;
-    unsigned int src_bitnum;
-    unsigned int dest_bitnum;
+    Move move;
     bool is_capture;
 };
 
-typedef boost::container::static_vector<Move, MAX_BRANCHES> MoveList;
+typedef boost::container::static_vector<SearchMove, MAX_BRANCHES> MoveList;
 
 
 namespace
@@ -28,8 +26,13 @@ SearchResult negate_search_result(SearchResult result);
 }
 
 
-SearchResult search_node(int depth, const Position& pos, int alpha, int beta, TranspositionTable& tt)
+// pv is strictly an output that will hold the principal variation of this subtree.
+// It should be empty, and will remain empty if this is a leaf node
+// @XXX@ no pv stored in TT
+SearchResult search_node(int depth, const Position& pos, int alpha, int beta, TranspositionTable& tt, Variation& pv)
 {
+    assert(pv.size() == 0);
+
     // Check if position is in transposition table
     std::uint64_t hash = calc_hash(pos);
 
@@ -74,16 +77,27 @@ SearchResult search_node(int depth, const Position& pos, int alpha, int beta, Tr
     int best_upper_bound = -1;
     std::uint64_t num_childrens_leaves = 0;
     int old_alpha = alpha;
-    for (const Move& move : movelist) {
+    for (const SearchMove& move : movelist) {
+        Variation subvariation;
         SearchResult child_result = search_node(depth - 1,
                                                 flip_board(move.new_pos),
                                                 -beta,
                                                 -alpha,
-                                                tt);
+                                                tt,
+                                                subvariation);
         num_childrens_leaves += child_result.num_leaves;
         child_result = negate_search_result(child_result);      // our score is opposite of opponent's score
         best_lower_bound = std::max(best_lower_bound, child_result.lower_bound);
-        alpha = std::max(alpha, child_result.lower_bound);
+        // @TODO@ -- I want to change >= to just >, which would make it copy *much* less often.
+        // But then no move would be stored if alpha never improves.
+        // I think this would be fixable by using a starting alpha-beta window of
+        // (-inf, inf) instead of (-1, 1).
+        if (child_result.lower_bound >= alpha) {
+            alpha = child_result.lower_bound;
+            pv.resize(1);
+            pv[0] = move.move;
+            pv.insert(pv.end(), subvariation.begin(), subvariation.end());
+        }
         if (alpha >= beta) {
             // If we don't examine all children, we can't measure the upper bound
             // So we use 1 instead
@@ -109,7 +123,7 @@ std::uint64_t perft_node(int depth, const Position& pos)
     gen_moves(movelist, pos);
 
     std::uint64_t leaves = 0;
-    for (const Move& move : movelist) {
+    for (const SearchMove& move : movelist) {
         leaves += perft_node(depth - 1, flip_board(move.new_pos));
     }
 
@@ -127,9 +141,9 @@ std::vector<PerftMove> split_perft_node(int depth, const Position& pos)
     MoveList movelist;
     gen_moves(movelist, pos);
 
-    for (const Move& move : movelist) {
+    for (const SearchMove& move : movelist) {
         std::uint64_t num_leaves = perft_node(depth - 1, flip_board(move.new_pos));
-        PerftMove perft_move = {move.src_bitnum, move.dest_bitnum, num_leaves};
+        PerftMove perft_move = {move.move, num_leaves};
         result.push_back(perft_move);
     }
 
@@ -185,7 +199,7 @@ bool try_advance(MoveList& movelist,
     if (!(all_pawns & dest)) {
         // The destination is empty; we can advance
         Bitboard my_new_pawns = (pos.my_pawns | dest) & ~bit;
-        Move move = {{my_new_pawns, pos.their_pawns, new_en_passant_bitnum}, bitnum, dest_bitnum, false};
+        SearchMove move = {{my_new_pawns, pos.their_pawns, new_en_passant_bitnum}, {bitnum, dest_bitnum}, false};
         movelist.push_back(move);
         return true;
     }
@@ -207,7 +221,7 @@ void try_capture(MoveList& movelist,
         Bitboard my_new_pawns = (pos.my_pawns | dest) & ~bit;
         Bitboard captured_pawn = (dest == en_passant_bit) ? dest >> 8 : dest;
         Bitboard their_new_pawns = pos.their_pawns & ~captured_pawn;
-        Move move = {{my_new_pawns, their_new_pawns, NO_EN_PASSANT}, bitnum, dest_bitnum, true};
+        SearchMove move = {{my_new_pawns, their_new_pawns, NO_EN_PASSANT}, {bitnum, dest_bitnum}, true};
         movelist.push_back(move);
     }
 }
@@ -217,7 +231,7 @@ void sort_moves(MoveList& movelist)
 {
     std::sort(movelist.begin(),
               movelist.end(),
-              [](Move a, Move b) -> bool {
+              [](SearchMove a, SearchMove b) -> bool {
                 return a.is_capture && !b.is_capture;
               });
 }

@@ -20,4 +20,10 @@ struct Position
     bool operator!=(const Position& rhs) const { return !(*this == rhs); }
 };
 
+struct Move
+{
+    unsigned int src_bitnum;
+    unsigned int dest_bitnum;
+};
+
 #endif

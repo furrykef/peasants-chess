@@ -17,6 +17,7 @@ namespace
 void solve(const Position& pos, int start_depth, int max_depth);
 void perft(const Position& pos, int start_depth, int max_depth, bool split);
 Position parse_fen(const std::string& fen);
+std::string variation_to_string(const Variation& variation);
 std::uint64_t now_in_microseconds();
 }
 
@@ -75,8 +76,9 @@ void solve(const Position& pos, int start_depth, int max_depth)
     int lower_bound = -1;
     int upper_bound = 1;
     for (int depth = start_depth; lower_bound != upper_bound && depth <= max_depth; ++depth) {
+        Variation pv;
         std::uint64_t before = now_in_microseconds();
-        SearchResult result = search_node(depth, pos, lower_bound, upper_bound, tt);
+        SearchResult result = search_node(depth, pos, lower_bound, upper_bound, tt, pv);
         lower_bound = result.lower_bound;
         upper_bound = result.upper_bound;
         std::uint64_t after = now_in_microseconds();
@@ -87,6 +89,7 @@ void solve(const Position& pos, int start_depth, int max_depth)
                   << "; leaves " << result.num_leaves
                   << "; sec " << time_taken
                   << "; megaleaves/sec " << (leaves_sec/1'000'000)
+                  << "; pv " << variation_to_string(pv)
                   << std::endl;
     }
 
@@ -136,8 +139,8 @@ void perft(const Position& pos, int start_depth, int max_depth, bool split)
         if (split) {
             for (const PerftMove& move : moves) {
                 std::cout << "    "
-                          << bitnum_to_coords(move.src_bitnum) << "-"
-                          << bitnum_to_coords(move.dest_bitnum) << ": "
+                          << bitnum_to_coords(move.move.src_bitnum) << "-"
+                          << bitnum_to_coords(move.move.dest_bitnum) << ": "
                           << move.num_leaves << " leaves"
                           << std::endl;
             }
@@ -195,6 +198,22 @@ Position parse_fen(const std::string& fen)
     unsigned int en_passant = (en_passant_str != "-") ? parse_coords(en_passant_str) : NO_EN_PASSANT;
 
     return {white_pawns, black_pawns, en_passant};
+}
+
+
+// @TODO@ -- result has extra space at the end
+std::string variation_to_string(const Variation& variation)
+{
+    std::string out;
+    bool white = true;
+    for (const Move& move : variation) {
+        unsigned int xor = white ? 0 : 56;          // black's moves need to be flipped
+        out += bitnum_to_coords(move.src_bitnum ^ xor);
+        out += bitnum_to_coords(move.dest_bitnum ^ xor);
+        out += " ";
+        white = !white;
+    }
+    return out;
 }
 
 
