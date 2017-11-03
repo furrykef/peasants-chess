@@ -38,12 +38,11 @@ https://github.com/sliedes/pawnsonly  is a solution for chess with only pawns an
 Proof-number search is designed to handle the problem we're trying to solve
 
 
-BUGGY POSITION: 8/XXX5/8/8/8/8/ooo5/8 -
-Upper bound starts oscillating at depth 13
+8/XXX5/8/8/8/8/ooo5/8 -
+Upper bound starts oscillating at depth 14 if we fail soft on our bounds. It's stable if we fail hard.
 
 
-perft is giving 802,287,678 for depth 9.
-Twipply has 802,573,460.
+Check that our alpha-beta implementation is correct. If we fail low, we're really returning an upper bound, but that doesn't gibe with the current implementation.
 
 
 Dead files
@@ -202,9 +201,16 @@ White to move in both positions.
 In the first, white wins; in the latter, black wins. The extra tempo it takes white to get to rank 7 in the latter position is critical. Remember, the goal is to get to the end of the board!
 
 
+The TT and PV
+-------------
+How do we retrieve the PV for position that we pulled from the TT?
+
+I came up with a hare-brained scheme that I'm documenting here because I think it probably should *not* be used, and I don't want to waste time with this silly idea if I forget about it and come up with it again: Each variation is a manual linked list using a shared_ptr to point to the next node. The nodes are allocated from a memory pool. The problems with this scheme are cache misses (getting the next move from the TT will miss the cache) and runaway memory usage if the pool holds a lot of nodes that are not directly in the TT.
+
+
 perft
 -----
-Depth 7 is known to have 6,146,460 leaf nodes. This has been independently verified by both Twipply and mkchan. Depth 8 and above have not been independently verified by programs that implement a rank-7 victory condition, but my first result is 68,260,416.
+Depth 7 is known to have 6,146,460 leaf nodes. This has been independently verified by both Twipply and mkchan. Depth 9 has 802,573,460 leaves, verified by Twipply.
 
 You can speed up perft a bit by just counting the number of moves generated at depth 1 instead of actually making them.
 

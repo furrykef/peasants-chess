@@ -28,19 +28,21 @@ SearchResult negate_search_result(SearchResult result);
 
 // pv is strictly an output that will hold the principal variation of this subtree.
 // It should be empty, and will remain empty if this is a leaf node
+// Returned bounds are clamped at (alpha, beta)
 // @XXX@ no pv stored in TT
 SearchResult search_node(int depth, const Position& pos, int alpha, int beta, TranspositionTable& tt, Variation& pv)
 {
     assert(pv.size() == 0);
 
     // Check if position is in transposition table
+    // @TODO@ -- don't want to waste time hashing if TT's size is zero
     std::uint64_t hash = calc_hash(pos);
 
     if (!pos.my_pawns || pos.their_pawns & 0x0000'0000'0000'00ffULL) {
         // I have no pawns or an enemy pawn is on my first rank! I've lost!
         TTEntry tt_entry(pos, -1, 1, -1, -1, depth);
         tt.insert(hash, tt_entry);
-        return {-1, -1, 1};
+        return {std::max(-1, alpha), std::min(-1, beta), 1};
     }
 
     /*const TTEntry* tt_entry_ptr = tt.fetch(hash, pos);
@@ -48,7 +50,7 @@ SearchResult search_node(int depth, const Position& pos, int alpha, int beta, Tr
         && tt_entry_ptr->depth >= depth
         && tt_entry_ptr->alpha <= alpha
         && tt_entry_ptr->beta >= beta) {
-        return {tt_entry_ptr->lower_bound, tt_entry_ptr->upper_bound, 1};
+        return {std::max(tt_entry_ptr->lower_bound, alpha), std::min(tt_entry_ptr->upper_bound, beta), 1};
     }*/
 
     // @TODO@ -- perhaps check for positions that will clearly be stalemate (all files dead)
@@ -58,7 +60,7 @@ SearchResult search_node(int depth, const Position& pos, int alpha, int beta, Tr
         // Result is unknown
         TTEntry tt_entry(pos, -1, 1, -1, 1, depth);
         tt.insert(hash, tt_entry);
-        return {-1, 1, 1};
+        return {alpha, beta, 1};
     }
 
     MoveList movelist;
@@ -68,7 +70,7 @@ SearchResult search_node(int depth, const Position& pos, int alpha, int beta, Tr
         // Stalemate
         TTEntry tt_entry(pos, -1, 1, 0, 0, depth);
         tt.insert(hash, tt_entry);
-        return {0, 0, 1};
+        return {std::max(0, alpha), std::min(0, beta), 1};
     }
 
     sort_moves(movelist);
@@ -109,7 +111,7 @@ SearchResult search_node(int depth, const Position& pos, int alpha, int beta, Tr
 
     TTEntry tt_entry(pos, old_alpha, beta, best_lower_bound, best_upper_bound, depth);
     tt.insert(hash, tt_entry);
-    return {best_lower_bound, best_upper_bound, num_childrens_leaves};
+    return {std::max(best_lower_bound, alpha), std::min(best_upper_bound, beta), num_childrens_leaves};
 }
 
 
@@ -169,7 +171,7 @@ void gen_moves(MoveList& movelist, const Position& pos)
                 try_advance(movelist, pos, bitnum, 2, bitnum+8);
             }
 
-            // Have to check NO_EN_PASSANT explicitly because 1 << NO_EN_PASSANT is UB
+            // Have to check NO_EN_PASSANT explicitly because 1ULL << NO_EN_PASSANT is UB
             Bitboard en_passant_bit = (pos.en_passant_bitnum == NO_EN_PASSANT) ? 0 : 1ULL << pos.en_passant_bitnum;
             unsigned int column = bitnum % 8;       // 0 = rightmost column; 7 = leftmost
             // Don't test invalid captures (leftward capture on leftmost column, etc.)
