@@ -73,7 +73,8 @@ std::uint64_t calc_hash(const Position& pos)
 {
     Bitboard my_pawns = pos.my_pawns;
     Bitboard their_pawns = pos.their_pawns;
-    std::uint64_t hash = (pos.en_passant_bitnum != NO_EN_PASSANT) ? g_zobrist_en_passant[pos.en_passant_bitnum] : 0;
+    // OK to use 0 in case of no en passant (0 is never a valid en passant square)
+    std::uint64_t hash = g_zobrist_en_passant[pos.en_passant_bitnum.value_or(0)];
     hash ^= g_zobrist_codes[0][0xffff & my_pawns];
     hash ^= g_zobrist_codes[1][0xffff & (my_pawns >> 16)];
     hash ^= g_zobrist_codes[2][0xffff & (my_pawns >> 32)];

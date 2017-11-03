@@ -164,15 +164,14 @@ void gen_moves(MoveList& movelist, const Position& pos)
         if (pos.my_pawns & bit) {
             // We've found one of my pawns.
             // Try a one-square advance
-            bool can_advance = try_advance(movelist, pos, bitnum, 1, NO_EN_PASSANT);
+            bool can_advance = try_advance(movelist, pos, bitnum, 1, {});
 
             // If successful, try a two-square advance if on second rank
             if (can_advance && bitnum < 16) {
                 try_advance(movelist, pos, bitnum, 2, bitnum+8);
             }
 
-            // Have to check NO_EN_PASSANT explicitly because 1ULL << NO_EN_PASSANT is UB
-            Bitboard en_passant_bit = (pos.en_passant_bitnum == NO_EN_PASSANT) ? 0 : 1ULL << pos.en_passant_bitnum;
+            Bitboard en_passant_bit = pos.en_passant_bitnum ? 1ULL << pos.en_passant_bitnum.value() : 0;
             unsigned int column = bitnum % 8;       // 0 = rightmost column; 7 = leftmost
             // Don't test invalid captures (leftward capture on leftmost column, etc.)
             if (column != 7) {
@@ -223,7 +222,7 @@ void try_capture(MoveList& movelist,
         Bitboard my_new_pawns = (pos.my_pawns | dest) & ~bit;
         Bitboard captured_pawn = (dest == en_passant_bit) ? dest >> 8 : dest;
         Bitboard their_new_pawns = pos.their_pawns & ~captured_pawn;
-        SearchMove move = {{my_new_pawns, their_new_pawns, NO_EN_PASSANT}, {bitnum, dest_bitnum}, true};
+        SearchMove move = {{my_new_pawns, their_new_pawns, {}}, {bitnum, dest_bitnum}, true};
         movelist.push_back(move);
     }
 }
@@ -244,7 +243,10 @@ void sort_moves(MoveList& movelist)
 // (we do this instead of the full rotation because it's faster)
 Position flip_board(const Position& pos)
 {
-    auto en_passant = (pos.en_passant_bitnum != NO_EN_PASSANT) ? pos.en_passant_bitnum ^ 56 : NO_EN_PASSANT;
+    boost::optional<unsigned int> en_passant;
+    if (pos.en_passant_bitnum) {
+        en_passant = pos.en_passant_bitnum.value() ^ 56;
+    }
     return {vflip_bitboard(pos.their_pawns),
             vflip_bitboard(pos.my_pawns),
             en_passant};
