@@ -1,14 +1,14 @@
 #ifndef PEASANT_POSITION_HPP
 #define PEASANT_POSITION_HPP
 
-#include <boost/optional.hpp>
+#include <optional>
 #include "bitboards.hpp"
 
 struct Position
 {
     Bitboard my_pawns;
     Bitboard their_pawns;
-    boost::optional<unsigned int> en_passant_bitnum;
+    std::optional<unsigned int> en_passant_bitnum;
 
     bool operator==(const Position& rhs) const {
         return my_pawns == rhs.my_pawns &&

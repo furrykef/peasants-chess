@@ -195,7 +195,7 @@ Position parse_fen(const std::string& fen)
     }
 
     std::string en_passant_str = match[9].str();
-    boost::optional<unsigned int> en_passant;
+    std::optional<unsigned int> en_passant;
     if (en_passant_str != "-") {
         en_passant = parse_coords(en_passant_str);
     }

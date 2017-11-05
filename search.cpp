@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <boost/algorithm/clamp.hpp>
 #include "search.hpp"
 
 // The maximum number of moves that can be made in a turn (an overestimate)
@@ -71,7 +70,7 @@ SearchResult search_node(int depth, const Position& pos, int alpha, int beta, Tr
         // Stalemate
         TTEntry tt_entry(pos, -1, 1, 0, 0, depth);
         tt.insert(hash, tt_entry);
-        return {boost::algorithm::clamp(0, alpha, beta), std::min(0, beta), 1};
+        return {std::clamp(0, alpha, beta), std::min(0, beta), 1};
     }
 
     sort_moves(movelist);
@@ -112,7 +111,7 @@ SearchResult search_node(int depth, const Position& pos, int alpha, int beta, Tr
 
     TTEntry tt_entry(pos, old_alpha, beta, best_lower_bound, best_upper_bound, depth);
     tt.insert(hash, tt_entry);
-    return {boost::algorithm::clamp(best_lower_bound, alpha, beta),
+    return {std::clamp(best_lower_bound, alpha, beta),
             std::min(best_upper_bound, beta),
             num_childrens_leaves};
 }
@@ -246,7 +245,7 @@ void sort_moves(MoveList& movelist)
 // (we do this instead of the full rotation because it's faster)
 Position flip_board(const Position& pos)
 {
-    boost::optional<unsigned int> en_passant;
+    std::optional<unsigned int> en_passant;
     if (pos.en_passant_bitnum) {
         en_passant = pos.en_passant_bitnum.value() ^ 56;
     }
