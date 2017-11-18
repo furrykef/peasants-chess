@@ -32,9 +32,9 @@
 *.app
 
 # Kef's additions
-x64/*
-packages
-.vs
+x64/
+packages/
+.vs/
 *.db
 *.opendb
 *.user

@@ -45,6 +45,9 @@ Upper bound starts oscillating at depth 14 if we fail soft on our bounds. It's s
 Check that our alpha-beta implementation is correct. If we fail low, we're really returning an upper bound, but that doesn't gibe with the current implementation.
 
 
+I think the score of a node for the purpose of determining the principal variation should be the average of the lower and upper bound. We should use this score rather than the lower bound to determine when we have found a better move than the current best.
+
+
 Dead files
 ----------
 Consider this opening:
