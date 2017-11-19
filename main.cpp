@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
             solve(pos, depth, max_depth);
         }
     }
-    catch(std::exception& e) {
+    catch (const std::exception& e) {
         std::cerr << "ERROR: " << e.what() << std::endl;
         return 1;
     }
